@@ -55,7 +55,7 @@ void inicializa_pacote(struct Pacote *meu_pacote, uint8_t num_sequencia , size_t
 	
 	meu_pacote->crc = calcula_crc(meu_pacote);
    
-} 
+}
     
 /*
  * Função para criar um socket "cru" (Raw Socket)
