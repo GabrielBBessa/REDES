@@ -1,0 +1,9 @@
+# Executáveis e binários
+redes_exec
+*.o
+*.out
+
+# Arquivos de teste grandes (para não estourar o limite do Git)
+*.jpeg
+*.jpg
+*.png
