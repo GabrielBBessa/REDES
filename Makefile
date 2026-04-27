@@ -7,7 +7,7 @@ TARGET = redes_exec
 all: $(TARGET)
 
 $(TARGET): main.cpp
-	$(CC) $(CFLAGS) rascunho.cpp -o $(TARGET)
+	$(CC) $(CFLAGS) main.cpp -o $(TARGET)
 
 # Comando para limpar a pasta: digite 'make clean'
 clean:
