@@ -19,3 +19,22 @@ uint8_t calcula_crc(struct Pacote *p) {
     }
     return crc;
 }
+
+// Preenche o pacote 
+void inicializa_pacote(struct Pacote *meu_pacote, uint8_t num_sequencia , size_t lidos , uint8_t *vetor_leitura){
+
+	memset(meu_pacote, 0, sizeof(struct Pacote)); 	// Preenche tudo com zero
+	
+	meu_pacote->marcador = 0x7E;           			// O 01111110 fixo do protocolo
+	meu_pacote->tamanho = (uint8_t)lidos; 			// Salva quantos bytes reais de dados há aqui
+	meu_pacote->sequencia = num_sequencia; 			// Uma variável que você incrementa (0, 1, 2...)
+	meu_pacote->tipo = 0x08;               			// Exemplo: código para "Dados de Arquivo"
+
+
+	// Copia os dados do vetor de leitura para dentro da struct
+	for (size_t i = 0; i < lidos; i++) {
+    	meu_pacote->dados[i] = vetor_leitura[i];
+	}	
+	
+	meu_pacote->crc = calcula_crc(meu_pacote);  
+}

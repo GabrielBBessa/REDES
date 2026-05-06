@@ -2,6 +2,7 @@
 #define _PROTOCOLO_
 
 #include <iostream>
+#include <cstring>         // Para funcoes como memset e memcpy
 #include <arpa/inet.h>     // Para funções de rede como htons e tipo uint8_t
 
 // Estrutura passada pelos professores
@@ -16,5 +17,6 @@ struct __attribute__((packed)) Pacote {
 };
 
 uint8_t calcula_crc(struct Pacote *p);
+void inicializa_pacote(struct Pacote *meu_pacote, uint8_t num_sequencia , size_t lidos , uint8_t *vetor_leitura);
 
 #endif
