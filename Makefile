@@ -1,14 +1,18 @@
-# Variáveis
 CC = g++
 CFLAGS = -Wall -g
-TARGET = redes_exec
+COMMON_OBJS = protocolo.o rede.o jogo.o
 
-# Comando principal: apenas digite 'make' no terminal
-all: $(TARGET)
+all: emissor servidor
 
-$(TARGET): main.cpp
-	$(CC) $(CFLAGS) main.cpp -o $(TARGET)
+emissor: emissor.o $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o emissor emissor.o $(COMMON_OBJS)
 
-# Comando para limpar a pasta: digite 'make clean'
+servidor: servidor.o $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o servidor servidor.o $(COMMON_OBJS)
+
+# Regras de compilação individual (.cpp para .o)
+%.o: %.cpp
+	$(CC) $(CFLAGS) -c $<
+
 clean:
-	rm -f $(TARGET)
+	rm -f *.o emissor servidor

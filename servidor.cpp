@@ -1,5 +1,6 @@
 #include "rede.h"
 
+
 // para rodar baixe o g++ , descubra o nome da sua interface com o comando *ip addr*
 //e rode com sudo ./executável "nome da interface" 
 int main(int argc, char *argv[]) {
@@ -17,6 +18,15 @@ int main(int argc, char *argv[]) {
 
     struct Pacote pacote_recebido;
     std::cout << "Servidor iniciado. Aguardando pacote" << std::endl;
+    
+    // Prepara o arquivo para receber os dados
+    FILE *arq_recebido = fopen("arquivo_final.txt", "wb"); 
+    if (!arq_recebido) {
+        perror("Erro ao criar arquivo de destino");
+        return -1;
+    }
+    
+    uint8_t proxima_seq = 0;
 
     // Loop do servidor
     while (true) {
@@ -24,22 +34,25 @@ int main(int argc, char *argv[]) {
         if (receber_pacote(socket, &pacote_recebido)) {
 
             // Verifica o tipo da mensagem (movimento, etc)
-            if (pacote_recebido.tipo == 10) {
-                std::cout << "Pacote recebido com sucesso" << std::endl;
+            if (pacote_recebido.tipo == 0x08) {
+            	if (pacote_recebido.sequencia == proxima_seq) {
+            		fwrite(pacote_recebido.dados, 1, pacote_recebido.tamanho, arq_recebido);
+                	std::cout << "Pacote recebido com sucesso" << std::endl;
+                	proxima_seq++;
+                }
 
                 // Resposta (ACK), nao sei se sempre vai ser isso, foi para teste
                 struct Pacote pacote_ack;
                 inicializa_pacote(&pacote_ack, pacote_recebido.sequencia, 0, NULL);
-                pacote_ack.tipo = 1;
-
-                // Precisamos recalcular o CRC pois mudei o tipo
-                pacote_ack.crc = calcula_crc(&pacote_ack);
-
                 send(socket, &pacote_ack, sizeof(pacote_ack), 0);
                 std::cout << "Pacote ACK enviado" << std::endl;
             }
+            else if (pacote_recebido.tipo == 0x09) {
+                std::cout << "Fim do arquivo recebido com sucesso!" << std::endl;
+                break; // Sai do loop para fechar o arquivo
+            }
         }
     }
-
+	fclose(arq_recebido);
     return 0;
 }

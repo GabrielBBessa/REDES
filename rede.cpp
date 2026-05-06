@@ -77,13 +77,8 @@ bool receber_pacote(int socket, struct Pacote *target) {
                 struct Pacote pacote_recebido;
                 memcpy(&pacote_recebido, buffer, sizeof(struct Pacote));
 
-                // Valida o CRC
-                // Salva o CRC que veio e depois zera na struct
-                uint8_t crc_recebido = pacote_recebido.crc;
-                pacote_recebido.crc = 0;
-
                 // Recalcula o CRC e depois compara com o CRC salvo
-                if (crc_recebido == calcula_crc(&pacote_recebido)) {
+                if (pacote_recebido.crc == calcula_crc(&pacote_recebido)) {
                     std::cout << "Pacote integro recebido" << std::endl;
 
                     // Salva o pacote recebido em target e retorna
@@ -118,32 +113,53 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     	exit(-1); 
 	}
 	
+	// variaveis para fazer o timeout:
+    struct timeval tv;
+	tv.tv_sec = 0;       // Segundos
+	tv.tv_usec = 200000; // Microsegundos (0.2 segundos)	
+	struct Pacote pacote_ack;	
+	size_t bytes;
 	
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+
 	uint8_t cont = 0;
+	size_t lidos;
 	
 	// Enquanto não acabar o arquivo
-	while (!feof(arq)){ 
-	
-		// Variável para saber se foram usados todos os 63 bits ou menos
-		size_t lidos = fread(vetor_temporario, 1, 63, arq);
+	// 1. MUDANÇA: Use o retorno do fread diretamente para evitar o erro do feof.
+	while ((lidos = fread(vetor_temporario, 1, 63, arq)) > 0) {
 		
-		if(lidos > 0){
-			inicializa_pacote(&meu_pacote,cont,lidos,vetor_temporario);
-			
-			bool sucesso = false;
-            while (!sucesso) {
-                // Envia o pacote pelo socket
-                send(socket, &meu_pacote, sizeof(meu_pacote), 0);
-                
-                // Espera o ACK (Aqui você precisaria de um recv com timeout)
-                // Se receber ACK com a mesma seq:
-                sucesso = true; 
-                // Se der erro de CRC no receptor ou timeout, o loop repete o send
-                
-            }
-            cont++;
+		// Isso joga fora qualquer "eco" de pacotes anteriores que ainda esteja na placa.
+		while(recv(socket, &pacote_ack, sizeof(pacote_ack), MSG_DONTWAIT) > 0);
+
+		inicializa_pacote(&meu_pacote, cont, lidos, vetor_temporario);
+		
+		bool sucesso = false;
+		while (!sucesso) {
+		    send(socket, &meu_pacote, sizeof(meu_pacote), 0);
+		    
+		    while(true) {
+		        bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);
+		        
+		        if (bytes < 0) {
+		        	if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		        		std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
+		    		}
+		            break; 
+		        }
+
+		        if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
+		            sucesso = true;
+		            break;
+		        }
+		    }
 		}
+		cont++;
+		// 4. MUDANÇA: Zere o buffer para a próxima leitura do arquivo.
+		memset(vetor_temporario, 0, 63);
 	}	
+	
 	
 	// BOA PRÁTICA: Enviar o pacote de FIM (EOF)
     struct Pacote pacote_fim;
