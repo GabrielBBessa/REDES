@@ -54,3 +54,113 @@ int cria_raw_socket(char* nome_interface_rede) {
     // Retorna o identificador do socket 
     return soquete;
 }
+
+bool receber_pacote(int socket, struct Pacote *target) {
+    // Usei um buffer grande para ler o arquivo
+    // Ler direto na struct pode dar segfault se o arquivo enviado for > 67 bytes
+    uint8_t buffer[2048];
+    ssize_t bytes_lidos;
+
+    while (true) {
+        // Ler os dados crus da placa de rede e colocar no buffer
+        bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
+
+        // Verifica se os bytes lidos sao pelo menos do tamanho da struct
+        // Se nao for, eh lixo
+        if (bytes_lidos >= (ssize_t)sizeof(struct Pacote)) {
+
+            // Verifica se o marcador eh o tipo certo (0x7E)
+            if (buffer[0] == 0x7E) {
+                std::cout << "Pacote valido recebido" << std::endl;
+
+                // Copia os bytes do buffer na struct
+                struct Pacote pacote_recebido;
+                memcpy(&pacote_recebido, buffer, sizeof(struct Pacote));
+
+                // Valida o CRC
+                // Salva o CRC que veio e depois zera na struct
+                uint8_t crc_recebido = pacote_recebido.crc;
+                pacote_recebido.crc = 0;
+
+                // Recalcula o CRC e depois compara com o CRC salvo
+                if (crc_recebido == calcula_crc(&pacote_recebido)) {
+                    std::cout << "Pacote integro recebido" << std::endl;
+
+                    // Salva o pacote recebido em target e retorna
+                    *target = pacote_recebido;
+                    return true;
+                }
+                else {
+                    std::cout << "Pacote corrompido" << std::endl;
+                }
+            }
+        }
+        else {
+            // Pacote invalido recebido
+            continue;
+        }
+    }
+}
+
+void enviar_arquivo(int socket, const char *nome_do_arquivo) {
+    struct Pacote meu_pacote;
+    
+    // Arquivo de teste
+    FILE *arq;
+    
+    // Vetor para guardar os dados lidos , tendo como limite o tamanho do pacote 
+	uint8_t vetor_temporario[63];
+    
+    arq = fopen(nome_do_arquivo, "rb");
+    
+    if (arq == NULL) {
+    	perror("Erro ao abrir arquivo"); 
+    	exit(-1); 
+	}
+	
+	
+	uint8_t cont = 0;
+	
+	// Enquanto não acabar o arquivo
+	while (!feof(arq)){ 
+	
+		// Variável para saber se foram usados todos os 63 bits ou menos
+		size_t lidos = fread(vetor_temporario, 1, 63, arq);
+		
+		if(lidos > 0){
+			inicializa_pacote(&meu_pacote,cont,lidos,vetor_temporario);
+			
+			bool sucesso = false;
+            while (!sucesso) {
+                // Envia o pacote pelo socket
+                send(socket, &meu_pacote, sizeof(meu_pacote), 0);
+                
+                // Espera o ACK (Aqui você precisaria de um recv com timeout)
+                // Se receber ACK com a mesma seq:
+                sucesso = true; 
+                // Se der erro de CRC no receptor ou timeout, o loop repete o send
+                
+            }
+            cont++;
+		}
+	}	
+	
+	// BOA PRÁTICA: Enviar o pacote de FIM (EOF)
+    struct Pacote pacote_fim;
+    
+    // Usamos o contador de sequência atual para manter a ordem
+    // lidos = 0 porque não há dados de arquivo aqui
+    // vetor_temporario pode ser NULL 
+    inicializa_pacote(&pacote_fim, cont, 0, NULL); 
+    
+    // Mudamos o tipo manualmente para o código de FIM
+    pacote_fim.tipo = 0x09; 
+    
+    // Recalcula o CRC porque mudamos o tipo!
+    pacote_fim.crc = calcula_crc(&pacote_fim);
+
+    send(socket, &pacote_fim, sizeof(pacote_fim), 0);
+    			
+    	    
+    fclose(arq);
+}
