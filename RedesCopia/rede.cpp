@@ -58,7 +58,7 @@ int cria_raw_socket(char* nome_interface_rede) {
 bool receber_pacote(int socket, struct Pacote *target) {
     // Usei um buffer grande para ler o arquivo
     // Ler direto na struct pode dar segfault se o arquivo enviado for > 67 bytes
-    uint8_t buffer[2028];
+    uint8_t buffer[2048];
     ssize_t bytes_lidos;
 
     while (true) {
@@ -113,10 +113,12 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     struct timeval tv;
 	tv.tv_sec = 0;       // Segundos
 	tv.tv_usec = 200000; // Microsegundos (0.2 segundos)	
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	
+	
 	struct Pacote pacote_ack;	
 	size_t bytes;
 	
-	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
 
 	uint8_t cont = 0;
@@ -136,19 +138,14 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
 		    send(socket, &meu_pacote, sizeof(meu_pacote), 0);
 		    
 		    while(true) {
-		        bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);
-		        
-		        if (bytes < 0) {
-		        	if (errno == EAGAIN || errno == EWOULDBLOCK) {
-		        		std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
-		    		}
-		            break; 
-		        }
+		        bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);		        
 
-		        if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
-		            sucesso = true;
-		            break;
+		        if (bytes > 0){
+		        	if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
+		            	sucesso = true;
+		        	}
 		        }
+		        else std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
 		    }
 		}
 		cont++;
