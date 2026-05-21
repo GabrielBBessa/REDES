@@ -60,7 +60,8 @@ bool receber_pacote(int socket, struct Pacote *target) {
         // Ler os dados crus da placa de rede e colocar no buffer
         bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
         
-        //******************* AQUI DEVE VIR O TRATAMENTO DO 0X88 E 0X81
+        //***********POSIÇÃO QUE O PROFESSOR FALOU QUE SERIA A MELHOR PARA TRATAR
+        //TERIA QUE SER DIRETO NO BUFFER E NÃO SEI COMO FARIA ISSO
 
         // Verifica se os bytes lidos sao pelo menos do tamanho da struct
         if (bytes_lidos >= (ssize_t)sizeof(struct Pacote)) {
@@ -75,7 +76,21 @@ bool receber_pacote(int socket, struct Pacote *target) {
                 // Recalcula o CRC e depois compara com o CRC salvo
                 if (pacote_recebido.crc == calcula_crc(&pacote_recebido)) {
                     std::cout << "CRC VALIDADO" << std::endl;
-
+                    
+                    // Tratamento para tipos que davam erro(0x81 e 0x88)
+					if (pacote_recebido.tipo == 0x08) {
+						for (int i = 0; i < pacote_recebido.tamanho; i++) {
+							// Se achou o escape que o emissor colocou
+							if (pacote_recebido.dados[i] == 0xFF) {
+								// Puxa todos os bytes da direita para a esquerda, esmagando o 0xFF
+								for (int j = i; j < pacote_recebido.tamanho - 1; j++) {
+									pacote_recebido.dados[j] = pacote_recebido.dados[j + 1];
+								}
+								pacote_recebido.tamanho--; // O pacote volta ao tamanho original
+							}
+						}
+					}
+                    				
                     // Salva o pacote recebido em target e retorna
                     *target = pacote_recebido;
                     return true;
@@ -133,6 +148,7 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
                 std::cout << std::dec << std::endl;                 
   					
   					// Tratamento dos tipos de dados que dão erro
+  					//********** (Outra alternativa seria testar esse código embaixo de inicializa pacote , fora do looping) ****************
 					for(int i = 0; i < meu_pacote.tamanho ; i++){
 						if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)){ 
 							for(int j = meu_pacote.tamanho; j > i; j--){
@@ -143,6 +159,9 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
 							i++;
 						}									
                 }
+                
+                // Após o tratamento é necessário recalcular o crc
+                meu_pacote.crc = calcula_crc(&meu_pacote);
                 
                 
                 send(socket, &meu_pacote, sizeof(meu_pacote), 0);
