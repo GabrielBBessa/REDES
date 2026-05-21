@@ -1,10 +1,7 @@
 #include "rede.h"
 
-
-// para rodar baixe o g++ , descubra o nome da sua interface com o comando *ip addr*
-//e rode com sudo ./executável "nome da interface" 
 int main(int argc, char *argv[]) {
-    // Verifica se você passou o nome da interface (ex: lp) ao rodar
+    // Verifica se o usuário passou o nome da interface ao rodar
     if (argc < 2) {
         std::cerr << "Uso: sudo " << argv[0] << " <interface>" << std::endl;
         return 1;
@@ -20,11 +17,12 @@ int main(int argc, char *argv[]) {
     std::cout << "Servidor iniciado. Aguardando pacote" << std::endl;
     
     // Prepara o arquivo para receber os dados
-    FILE *arq_recebido = fopen("arquivo_final.txt", "wb"); 
-    if (!arq_recebido) {
+    int arq_recebido = open("arquivo_final.mp4", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (arq_recebido < 0) {
         perror("Erro ao criar arquivo de destino");
         return -1;
     }
+    
 
     // Loop do servidor
     while (true) {
@@ -32,11 +30,11 @@ int main(int argc, char *argv[]) {
         if (receber_pacote(socket, &pacote_recebido)) {
 
             // Verifica o tipo da mensagem (movimento, etc)
-            if (pacote_recebido.tipo == 0x08) {     
-				fwrite(pacote_recebido.dados, 1, pacote_recebido.tamanho, arq_recebido);
-				std::cout << "Pacote recebido com sucesso" << std::endl;
-				
-				
+            if (pacote_recebido.tipo == 0x08) {
+
+                write(arq_recebido, pacote_recebido.dados, pacote_recebido.tamanho);
+            	std::cout << "Pacote recebido com sucesso" << std::endl;
+            
                 // Resposta (ACK), nao sei se sempre vai ser isso, foi para teste
                 struct Pacote pacote_ack;
                 inicializa_pacote(&pacote_ack, pacote_recebido.sequencia, 0, NULL);
@@ -49,6 +47,6 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-	fclose(arq_recebido);
+	close(arq_recebido);
     return 0;
 }

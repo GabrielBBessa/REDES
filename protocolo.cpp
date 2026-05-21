@@ -5,7 +5,7 @@ uint8_t calcula_crc(struct Pacote *p) {
     uint8_t *dados = (uint8_t *)p; // Trata a struct como um array de bytes
     
 	
-	//Já ignorando o proprio CRC
+	// Já ignorando o proprio CRC
     int tamanho_total = sizeof(struct Pacote) - 1;
 
     for (int i = 0; i < tamanho_total; i++) {
