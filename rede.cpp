@@ -80,16 +80,16 @@ bool receber_pacote(int socket, struct Pacote *target) {
                     std::cout << "CRC VALIDADO" << std::endl;
                     
                     // Tratamento para tipos que davam erro(0x81 e 0x88)
+
 					if (pacote_recebido.tipo == 0x08) {
 						for (int i = 0; i < pacote_recebido.tamanho; i++) {
 							// Se achou o escape que o emissor colocou
-							if (pacote_recebido.dados[i] == 0xFF) {
-								// Puxa todos os bytes da direita para a esquerda, esmagando o 0xFF
-								for (int j = i; j < pacote_recebido.tamanho - 1; j++) {
-									pacote_recebido.dados[j] = pacote_recebido.dados[j + 1];
-								}
-								pacote_recebido.tamanho--; // O pacote volta ao tamanho original
-							}
+							if ((pacote_recebido.dados[i] == 0x81 || pacote_recebido.dados[i] == 0x88) && (i + 1 < pacote_recebido.tamanho) && pacote_recebido.dados[i + 1]) {
+                                for (int j = i + 1; j < pacote_recebido.tamanho - 1; j++) {
+                                    pacote_recebido.dados[j] = pacote_recebido.dados[j + 1];
+                                }
+                                pacote_recebido.tamanho--;
+                            }
 						}
 					}
                     				
@@ -100,6 +100,7 @@ bool receber_pacote(int socket, struct Pacote *target) {
 
                 else {
                     std::cout << "Pacote corrompido" << std::endl;
+                    return false;
                 }
             }
         }
@@ -133,10 +134,7 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
 
 	
 	// Enquanto não acabar o arquivo
-	while ((lidos = read(arq, vetor_temporario, 63)) > 0) {
-		// Isso joga fora qualquer "eco" de pacotes anteriores que ainda esteja na placa.
-		//while(recv(socket, &pacote_ack, sizeof(pacote_ack), MSG_DONTWAIT) > 0);
-		
+	while ((lidos = read(arq, vetor_temporario, 30)) > 0) {
 		inicializa_pacote(&meu_pacote, cont, lidos, vetor_temporario);
             
 		bool sucesso = false;
@@ -147,50 +145,48 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
 				std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)meu_pacote.dados[i] << " ";
 			}
                 
-                std::cout << std::dec << std::endl;                 
+            std::cout << std::dec << std::endl;                 
   					
-  					// Tratamento dos tipos de dados que dão erro
-  					//********** (Outra alternativa seria testar esse código embaixo de inicializa pacote , fora do looping) ****************
-					for(int i = 0; i < meu_pacote.tamanho ; i++){
-						if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)){ 
-							for(int j = meu_pacote.tamanho; j > i; j--){
-								meu_pacote.dados[j] = meu_pacote.dados[j - 1];
-							}
-							meu_pacote.dados[i] = 0xFF;
-							meu_pacote.tamanho++;
-							i++;
-						}									
-                }
+  			// Tratamento dos tipos de dados que dão erro
+  			for(int i = 0; i < meu_pacote.tamanho ; i++){
+				if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)){ 
+					for(int j = meu_pacote.tamanho; j > i + 1; j--){
+						meu_pacote.dados[j] = meu_pacote.dados[j - 1];
+					}
+					meu_pacote.dados[i + 1] = 0xFF;
+					meu_pacote.tamanho++;
+					i++;
+				}									
+            }
                 
                 // Após o tratamento é necessário recalcular o crc
-                meu_pacote.crc = calcula_crc(&meu_pacote);
+            meu_pacote.crc = calcula_crc(&meu_pacote);
                 
-                
-                send(socket, &meu_pacote, sizeof(meu_pacote), 0);
+            send(socket, &meu_pacote, sizeof(meu_pacote), 0);
                     
-                while(true) {
-                    bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);
+            while(true) {
+                bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);
                     
-                    if (bytes < 0) {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                            std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
-                        }
-                        break; 
+                if (bytes < 0) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
                     }
+                    break; 
+                }
 
-                    if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
-                        sucesso = true;
-                        break;
-                    }
+                if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
+                    sucesso = true;
+                    break;
                 }
             }
-            cont++;
+        }
+        cont++;
             // Zera o buffer para a próxima leitura do arquivo.
-            memset(vetor_temporario, 0, 63);
+        memset(vetor_temporario, 0, 63);
     }
 	
 	
-	// BOA PRÁTICA: Enviar o pacote de FIM (EOF)
+	// Enviar o pacote de FIM (EOF)
     struct Pacote pacote_fim;
     
     // Usa o contador de sequência atual para manter a ordem

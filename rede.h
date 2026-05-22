@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <unistd.h>
+#include <cerrno>               // Para erros de timeout (EAGAIN, EWOULDBLOCK)
 #include "protocolo.h"
 
 
