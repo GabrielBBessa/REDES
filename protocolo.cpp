@@ -4,7 +4,8 @@ uint8_t calcula_crc(struct Pacote *p) {
     uint8_t crc = 0x00;
     uint8_t *dados = (uint8_t *)p; // Trata a struct como um array de bytes
     
-
+	
+	// Já ignorando o proprio CRC
     int tamanho_total = sizeof(struct Pacote) - 1;
 
     for (int i = 0; i < tamanho_total; i++) {
@@ -28,13 +29,12 @@ void inicializa_pacote(struct Pacote *meu_pacote, uint8_t num_sequencia , size_t
 	meu_pacote->marcador = 0x7E;           			// O 01111110 fixo do protocolo
 	meu_pacote->tamanho = (uint8_t)lidos; 			// Salva quantos bytes reais de dados há aqui
 	meu_pacote->sequencia = num_sequencia; 			// Uma variável que você incrementa (0, 1, 2...)
-	meu_pacote->tipo = 0x08;               			// Exemplo: código para "Dados de Arquivo"
+	meu_pacote->tipo = (lidos > 0) ? 0x08 : 0x0A;              			
 
 
-	// Copia os dados do vetor de leitura para dentro da struct
-	for (size_t i = 0; i < lidos; i++) {
-    	meu_pacote->dados[i] = vetor_leitura[i];
-	}	
+	if (vetor_leitura != NULL && lidos > 0) {
+        memcpy(meu_pacote->dados, vetor_leitura, lidos);
+    }	
 	
 	meu_pacote->crc = calcula_crc(meu_pacote);  
 }

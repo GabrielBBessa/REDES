@@ -1,18 +1,13 @@
 #include "rede.h"
 
-/*
- * Função para criar um socket "cru" (Raw Socket)
- * Recebe o nome da interface (ex: "eth0", "enp0s3")
- */
- 
- /* Socket é a estrutura que permite passar informações de um computador para outro , 
-a raw socket permite interagir com a placa de rede quase que diretamente , lendo e escrevendo byte a byte na rede */
+ // Função para criar um socket "cru" (Raw Socket)
+ // Recebe o nome da interface (ex: "eth0", "enp0s3") s
 int cria_raw_socket(char* nome_interface_rede) {
     
-    // 1. CRIAÇÃO DO SOCKET
+    // CRIAÇÃO DO SOCKET
     // AF_PACKET: Indica comunicação na camada de enlace (Layer 2)
     // SOCK_RAW: Indica que o pacote será entregue "cru", sem cabeçalhos IP/TCP automáticos
-    // htons(ETH_P_ALL): Grante que o socket irá capturar todos os protocolos que passarem pela interface de rede
+    // htons(ETH_P_ALL): Garante que o socket irá capturar todos os protocolos que passarem pela interface de rede
     int soquete = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     
     // Verificação de erro: Raw Sockets exigem permissão de administrador (root)
@@ -24,22 +19,22 @@ int cria_raw_socket(char* nome_interface_rede) {
     // Retorna o número correspondente ao nome de interface passado 
     int ifindex = if_nametoindex(nome_interface_rede);
 
-    // 3. CONFIGURAÇÃO DO ENDEREÇO
+    // CONFIGURAÇÃO DO ENDEREÇO
     // Define o caminho dos dados
     struct sockaddr_ll endereco = {0}; 
-    //Os dois primeiros são os mesmos parametros usados em soquete e o terceiro é o do número da interface
+    // Os dois primeiros são os mesmos parametros usados em soquete e o terceiro é o do número da interface
     endereco.sll_family = AF_PACKET;       
     endereco.sll_protocol = htons(ETH_P_ALL); 
     endereco.sll_ifindex = ifindex;        
 
-    // 4. VINCULAÇÃO (BIND)
+    // VINCULAÇÃO (BIND)
     // Associa o socket criado especificamente à placa de rede escolhida (pra isso a struct sockaddr)
     if (bind(soquete, (struct sockaddr*) &endereco, sizeof(endereco)) == -1) {
         std::cerr << "Erro ao fazer bind no socket: Interface inválida!" << std::endl;
         exit(-1);
     }
 
-    // 5. CONFIGURAÇÃO DO MODO PROMÍSCUO
+    // CONFIGURAÇÃO DO MODO PROMÍSCUO
     // Garante que não vai jogar nada no lixo automaticamente(modo promiscuo)
     struct packet_mreq mr = {0};
     mr.mr_ifindex = ifindex; //O número de interface 
@@ -65,8 +60,12 @@ bool receber_pacote(int socket, struct Pacote *target) {
         // Ler os dados crus da placa de rede e colocar no buffer
         bytes_lidos = recv(socket, buffer, sizeof(buffer), 0);
 
+        //TENTAR TRATAR AQUI ONDE O PROF MANDOU, USANDO BUFFER
+        
+        //***********POSIÇÃO QUE O PROFESSOR FALOU QUE SERIA A MELHOR PARA TRATAR
+        //TERIA QUE SER DIRETO NO BUFFER E NÃO SEI COMO FARIA ISSO
+
         // Verifica se os bytes lidos sao pelo menos do tamanho da struct
-        // Se nao for, eh lixo
         if (bytes_lidos >= (ssize_t)sizeof(struct Pacote)) {
 
             // Verifica se o marcador eh o tipo certo (0x7E)
@@ -76,28 +75,33 @@ bool receber_pacote(int socket, struct Pacote *target) {
                 // Copia os bytes do buffer na struct
                 struct Pacote pacote_recebido;
                 memcpy(&pacote_recebido, buffer, sizeof(struct Pacote));
-
-                // Valida o CRC
-                // Salva o CRC que veio e depois zera na struct
-                uint8_t crc_recebido = pacote_recebido.crc;
-                pacote_recebido.crc = 0;
-
                 // Recalcula o CRC e depois compara com o CRC salvo
-                if (crc_recebido == calcula_crc(&pacote_recebido)) {
-                    std::cout << "Pacote integro recebido" << std::endl;
-
+                if (pacote_recebido.crc == calcula_crc(&pacote_recebido)) {
+                    std::cout << "CRC VALIDADO" << std::endl;
+                    
+                    // Tratamento para tipos que davam erro(0x81 e 0x88)
+					if (pacote_recebido.tipo == 0x08) {
+						for (int i = 0; i < pacote_recebido.tamanho; i++) {
+							// Se achou o escape que o emissor colocou
+							if (pacote_recebido.dados[i] == 0xFF) {
+								// Puxa todos os bytes da direita para a esquerda, esmagando o 0xFF
+								for (int j = i; j < pacote_recebido.tamanho - 1; j++) {
+									pacote_recebido.dados[j] = pacote_recebido.dados[j + 1];
+								}
+								pacote_recebido.tamanho--; // O pacote volta ao tamanho original
+							}
+						}
+					}
+                    				
                     // Salva o pacote recebido em target e retorna
                     *target = pacote_recebido;
                     return true;
                 }
+
                 else {
                     std::cout << "Pacote corrompido" << std::endl;
                 }
             }
-        }
-        else {
-            // Pacote invalido recebido
-            continue;
         }
     }
 }
@@ -106,54 +110,95 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     struct Pacote meu_pacote;
     
     // Arquivo de teste
-    FILE *arq;
+    int arq;
     
     // Vetor para guardar os dados lidos , tendo como limite o tamanho do pacote 
 	uint8_t vetor_temporario[63];
     
-    arq = fopen(nome_do_arquivo, "rb");
-    
-    if (arq == NULL) {
-    	perror("Erro ao abrir arquivo"); 
-    	exit(-1); 
-	}
+    arq = open(nome_do_arquivo, O_RDONLY);
+	
+	// variaveis para fazer o timeout:
+    struct timeval tv;
+	tv.tv_sec = 0;       // Segundos
+	tv.tv_usec = 20000;  // Microsegundos (0.2 segundos)	
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 	
 	
+	struct Pacote pacote_ack;	
+	ssize_t bytes;	
+
+
 	uint8_t cont = 0;
+	ssize_t lidos;
+
 	
 	// Enquanto não acabar o arquivo
-	while (!feof(arq)){ 
-	
-		// Variável para saber se foram usados todos os 63 bits ou menos
-		size_t lidos = fread(vetor_temporario, 1, 63, arq);
+	while ((lidos = read(arq, vetor_temporario, 63)) > 0) {
+		// Isso joga fora qualquer "eco" de pacotes anteriores que ainda esteja na placa.
+		//while(recv(socket, &pacote_ack, sizeof(pacote_ack), MSG_DONTWAIT) > 0);
 		
-		if(lidos > 0){
-			inicializa_pacote(&meu_pacote,cont,lidos,vetor_temporario);
-			
-			bool sucesso = false;
-            while (!sucesso) {
-                // Envia o pacote pelo socket
+		inicializa_pacote(&meu_pacote, cont, lidos, vetor_temporario);
+            
+		bool sucesso = false;
+		while (!sucesso) {
+            
+			std::cout << "A enviar SEQ " << (int)meu_pacote.sequencia << " | Dados (HEX): ";
+			for (int i = 0; i < meu_pacote.tamanho ; i++) {
+				std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)meu_pacote.dados[i] << " ";
+			}
+                
+                std::cout << std::dec << std::endl;                 
+  					
+  					// Tratamento dos tipos de dados que dão erro
+  					//********** (Outra alternativa seria testar esse código embaixo de inicializa pacote , fora do looping) ****************
+					for(int i = 0; i < meu_pacote.tamanho ; i++){
+						if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)){ 
+							for(int j = meu_pacote.tamanho; j > i; j--){
+								meu_pacote.dados[j] = meu_pacote.dados[j - 1];
+							}
+							meu_pacote.dados[i] = 0xFF;
+							meu_pacote.tamanho++;
+							i++;
+						}									
+                }
+                
+                // Após o tratamento é necessário recalcular o crc
+                meu_pacote.crc = calcula_crc(&meu_pacote);
+                
+                
                 send(socket, &meu_pacote, sizeof(meu_pacote), 0);
-                
-                // Espera o ACK (Aqui você precisaria de um recv com timeout)
-                // Se receber ACK com a mesma seq:
-                sucesso = true; 
-                // Se der erro de CRC no receptor ou timeout, o loop repete o send
-                
+                    
+                while(true) {
+                    bytes = recv(socket, &pacote_ack, sizeof(pacote_ack), 0);
+                    
+                    if (bytes < 0) {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                            std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
+                        }
+                        break; 
+                    }
+
+                    if (pacote_ack.tipo == 0x0a && pacote_ack.sequencia == meu_pacote.sequencia) {
+                        sucesso = true;
+                        break;
+                    }
+                }
             }
             cont++;
-		}
-	}	
+            // Zera o buffer para a próxima leitura do arquivo.
+            memset(vetor_temporario, 0, 63);
+    }
+	
 	
 	// BOA PRÁTICA: Enviar o pacote de FIM (EOF)
     struct Pacote pacote_fim;
     
-    // Usamos o contador de sequência atual para manter a ordem
+    // Usa o contador de sequência atual para manter a ordem
     // lidos = 0 porque não há dados de arquivo aqui
     // vetor_temporario pode ser NULL 
     inicializa_pacote(&pacote_fim, cont, 0, NULL); 
     
-    // Mudamos o tipo manualmente para o código de FIM
+    // Muda o tipo manualmente para o código de FIM
     pacote_fim.tipo = 0x09; 
     
     // Recalcula o CRC porque mudamos o tipo!
@@ -162,5 +207,5 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     send(socket, &pacote_fim, sizeof(pacote_fim), 0);
     			
     	    
-    fclose(arq);
+    close(arq);
 }
