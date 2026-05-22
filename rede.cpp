@@ -76,21 +76,7 @@ bool receber_pacote(int socket, struct Pacote *target) {
                 // Recalcula o CRC e depois compara com o CRC salvo
                 if (pacote_recebido.crc == calcula_crc(&pacote_recebido)) {
                     std::cout << "CRC VALIDADO" << std::endl;
-                    
-                    // Tratamento para tipos que davam erro(0x81 e 0x88)
-					if (pacote_recebido.tipo == 0x08) {
-						for (int i = 0; i < pacote_recebido.tamanho; i++) {
-							// Se achou o escape que o emissor colocou
-							if (pacote_recebido.dados[i] == 0xFF) {
-								// Puxa todos os bytes da direita para a esquerda, esmagando o 0xFF
-								for (int j = i; j < pacote_recebido.tamanho - 1; j++) {
-									pacote_recebido.dados[j] = pacote_recebido.dados[j + 1];
-								}
-								pacote_recebido.tamanho--; // O pacote volta ao tamanho original
-							}
-						}
-					}
-                    				
+			
                     // Salva o pacote recebido em target e retorna
                     *target = pacote_recebido;
                     return true;
