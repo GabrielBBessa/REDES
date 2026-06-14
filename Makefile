@@ -2,10 +2,10 @@ CC = g++
 CFLAGS = -Wall -g
 COMMON_OBJS = protocolo.o rede.o jogo.o
 
-all: emissor servidor
+all: cliente servidor
 
-emissor: emissor.o $(COMMON_OBJS)
-	$(CC) $(CFLAGS) -o emissor emissor.o $(COMMON_OBJS)
+cliente: cliente.o $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o cliente cliente.o $(COMMON_OBJS)
 
 servidor: servidor.o $(COMMON_OBJS)
 	$(CC) $(CFLAGS) -o servidor servidor.o $(COMMON_OBJS)
@@ -15,4 +15,6 @@ servidor: servidor.o $(COMMON_OBJS)
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.o emissor servidor
+	rm -f *.o cliente servidor
+	
+
