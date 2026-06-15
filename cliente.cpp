@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
 	
+	int arq;
+	
 	struct Pacote pacote_inicial;
 	while(true) {
 		if (receber_pacote(socket, &pacote_inicial)) {
@@ -77,9 +79,24 @@ int main(int argc, char *argv[]) {
 					imprimir_mapa(pacote_recebido.dados, pacote_recebido.tamanho);
 					resposta_recebida = true; // Quebra o while interno e volta a pedir tecla
 				}
-                
-				// Futuramente, colocar aqui o 'else if (pacote_recebido.tipo == 0x08)' 
-				// para lidar com o recebimento do arquivo de vídeo das pastilhas!
+				// Recebeu pacote Tipo 5 (txt), 6 (jpg) ou 7 (mp4)
+				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
+    
+					// Descobre a extensão baseada no tipo que o professor definiu
+					std::string nome_coringa = "recompensa";
+					if (pacote_recebido.tipo == 0x05) nome_coringa += ".txt";
+					if (pacote_recebido.tipo == 0x06) nome_coringa += ".jpg";
+					if (pacote_recebido.tipo == 0x07) nome_coringa += ".mp4";
+
+					// Abre o arquivo em modo APPEND e joga os dados dentro
+					arq = open(nome_coringa.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+					write(arq, pacote_recebido.dados, pacote_recebido.tamanho);
+					close(arq);
+
+				}
+
+				// Recebeu pacote Tipo 16 (Fim de Transmissão)
+				else if (pacote_recebido.tipo == 0x10)	system("xdg-open recompensa* > /dev/null 2>&1 &");
 			}
 		}
 	}
