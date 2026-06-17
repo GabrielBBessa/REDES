@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	int fim_jogo = 0;
+	
 	// LOOP PRINCIPAL DO JOGADOR
 	while (true) {  
 		std::cin >> jogada; // Fica esperando o usuário digitar e dar Enter
@@ -90,9 +92,15 @@ int main(int argc, char *argv[]) {
 				
 					nome_coringa = "recompensa";
 					
-					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
+					if (pacote_recebido.tipo == 0x05){
+						nome_coringa += ".txt";
+						fim_jogo++;
+					}
 
-					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
+					if (pacote_recebido.tipo == 0x06){
+						nome_coringa += ".jpg";
+						fim_jogo++;
+					}
 					
 						
 					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
@@ -124,6 +132,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
+		if (fim_jogo == 1) break;
 	}
     return 0;
 }
