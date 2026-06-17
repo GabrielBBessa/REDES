@@ -81,52 +81,53 @@ int main(int argc, char *argv[]) {
 		while (!resposta_recebida) {
 			if (receber_pacote(socket, &pacote_recebido)) {
                 
-				// Se for o pacote do Mapa (Tipo 0x02)
+				// 1. Se for o pacote do Mapa (Tipo 0x02)
 				if (pacote_recebido.tipo == 0x02) {
 					std::cout << "\nVisão do PacMan:" << std::endl;
 					imprimir_mapa(pacote_recebido.dados, pacote_recebido.tamanho);
 					resposta_recebida = true; // Quebra o while interno e volta a pedir tecla
 				}
-				// Recebeu pacote Tipo 5 (txt), 6 (jpg) ou 7 (mp4)
+				
+				// 2. Recebeu pacote de dados de arquivo
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
 				
 					nome_coringa = "recompensa";
 					
 					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
-
 					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
-					
-						
 					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
 					
+					// A GRAVAÇÃO AGORA ESTÁ DENTRO DO ELSE IF!
+					flags = O_WRONLY | O_CREAT | (primeiro_pacote ? O_TRUNC : O_APPEND);
+					primeiro_pacote = false; 
+
+					int arq = open(nome_coringa.c_str(), flags, 0666);
+					if (arq != -1) {
+						write(arq, pacote_recebido.dados, pacote_recebido.tamanho);
+						close(arq);
+					}
 				}
 				
-				// Se for o 1º pacote, usa O_TRUNC para zerar o arquivo velho. Senão, usa O_APPEND.
-				flags = O_WRONLY | O_CREAT | (primeiro_pacote ? O_TRUNC : O_APPEND);
-				primeiro_pacote = false; 
-
-				int arq = open(nome_coringa.c_str(), flags, 0666);
-				if (arq != -1) {
-					write(arq, pacote_recebido.dados, pacote_recebido.tamanho);
-					close(arq);
-				}
+				// 3. Recebeu o Fim da Transmissão (Tipo 0x10)
+				// AGORA ESTÁ DENTRO DO if(receber_pacote)!
+				else if (pacote_recebido.tipo == 0x10) {
+					std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
+						
+					// Dispara o comando para o Ubuntu abrir o arquivo
+					std::string comando = "xdg-open " + nome_coringa + " > /dev/null 2>&1 &";
+					system(comando.c_str());
+						
+					// Se for texto, garante que imprima no terminal também
+					if (nome_coringa == "recompensa.txt") { 
+						std::cout << "Conteúdo do texto:\n";
+						system(("cat " + nome_coringa).c_str());
+					}
+					
+					fim_jogo++;
+				}			
 			}
-			// Recebeu o Fim da Transmissão (Tipo 0x10)
-			else if (pacote_recebido.tipo == 0x10) {
-				std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
-					
-				// Dispara o comando para o Ubuntu abrir o arquivo
-				std::string comando = "xdg-open " + nome_coringa + " > /dev/null 2>&1 &";
-				system(comando.c_str());
-					
-				// Se for texto, garante que imprima no terminal também
-				if (nome_coringa == "recompensa.txt") { 
-					std::cout << "Conteúdo do texto:\n";
-					system(("cat " + nome_coringa).c_str());
-				}
-			fim_jogo++;
-			}			
-		}
+		} // Fim do while(!resposta_recebida)
+		
 		// Use >= 1 porque garante que ele fecha, em vez de == 1
 		if (fim_jogo >= 1) {
 			std::cout << "Fim de jogo! Fechando o cliente..." << std::endl;
