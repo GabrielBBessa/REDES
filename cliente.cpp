@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
 	
+	int fim_jogo = 0;
+	
 	struct Pacote pacote_inicial;
 	while(true) {
 		if (receber_pacote(socket, &pacote_inicial)) {
@@ -43,8 +45,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-	
-	int fim_jogo = 0;
 	
 	// LOOP PRINCIPAL DO JOGADOR
 	while (true) {  
@@ -92,15 +92,9 @@ int main(int argc, char *argv[]) {
 				
 					nome_coringa = "recompensa";
 					
-					if (pacote_recebido.tipo == 0x05){
-						nome_coringa += ".txt";
-						fim_jogo++;
-					}
+					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
 
-					if (pacote_recebido.tipo == 0x06){
-						nome_coringa += ".jpg";
-						fim_jogo++;
-					}
+					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
 					
 						
 					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
@@ -130,9 +124,14 @@ int main(int argc, char *argv[]) {
 					std::cout << "Conteúdo do texto:\n";
 					system(("cat " + nome_coringa).c_str());
 				}
-			}
+			fim_jogo++;
+			}			
 		}
-		if (fim_jogo == 1) break;
+		// Use >= 1 porque garante que ele fecha, em vez de == 1
+		if (fim_jogo >= 1) {
+			std::cout << "Fim de jogo! Fechando o cliente..." << std::endl;
+			break;
+		}
 	}
     return 0;
 }
