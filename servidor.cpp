@@ -116,7 +116,10 @@ int main(int argc, char *argv[]) {
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
 				
-				if( fim_jogo == 1) break;
+				if( fim_jogo == 2){ 
+					enviar_mensagem(sock, 15, seq, 0, NULL);
+					break;
+				}
 					
 			}
 		}

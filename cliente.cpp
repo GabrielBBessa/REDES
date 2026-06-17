@@ -34,8 +34,6 @@ int main(int argc, char *argv[]) {
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
 	
-	int fim_jogo = 0;
-	
 	struct Pacote pacote_inicial;
 	while(true) {
 		if (receber_pacote(socket, &pacote_inicial)) {
@@ -81,14 +79,14 @@ int main(int argc, char *argv[]) {
 		while (!resposta_recebida) {
 			if (receber_pacote(socket, &pacote_recebido)) {
                 
-				// 1. Se for o pacote do Mapa (Tipo 0x02)
+				// Se for o pacote do Mapa (Tipo 0x02)
 				if (pacote_recebido.tipo == 0x02) {
 					std::cout << "\nVisão do PacMan:" << std::endl;
 					imprimir_mapa(pacote_recebido.dados, pacote_recebido.tamanho);
 					resposta_recebida = true; // Quebra o while interno e volta a pedir tecla
 				}
 				
-				// 2. Recebeu pacote de dados de arquivo
+				// Recebeu pacote de dados de arquivo
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
 				
 					nome_coringa = "recompensa";
@@ -108,8 +106,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				
-				// 3. Recebeu o Fim da Transmissão (Tipo 0x10)
-				// AGORA ESTÁ DENTRO DO if(receber_pacote)!
+				// Recebeu o Fim da Transmissão (Tipo 0x10)
 				else if (pacote_recebido.tipo == 0x10) {
 					std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
 						
@@ -122,17 +119,14 @@ int main(int argc, char *argv[]) {
 						std::cout << "Conteúdo do texto:\n";
 						system(("cat " + nome_coringa).c_str());
 					}
-					
-					fim_jogo++;
+
 				}			
 			}
-		} // Fim do while(!resposta_recebida)
-		
-		// Use >= 1 porque garante que ele fecha, em vez de == 1
-		if (fim_jogo >= 1) {
-			std::cout << "Fim de jogo! Fechando o cliente..." << std::endl;
-			break;
-		}
+			else if (pacote_recebido.tipo == 15) {
+				std::cout << "\nO Servidor encerrou a partida! Fechando o jogo..." << std::endl;
+				return 0; // Fecha o programa do cliente imediatamente!
+			}
+		} 
 	}
     return 0;
 }
