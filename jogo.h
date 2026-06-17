@@ -7,7 +7,7 @@
 #include <cstdlib> 
 #include <ctime>   
 #include <sstream>
-
+#include <cstdint>
 
 struct coordenada {
     int linha;

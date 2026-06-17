@@ -14,9 +14,9 @@
 
           
 
-
-void enviar_arquivo(int socket, const char *nome_do_arquivo);
+void enviar_arquivo(int socket, const char *nome_do_arquivo, uint8_t tipo_arquivo);
 bool receber_pacote(int socket, struct Pacote *target);
 void enviar_mensagem(int socket, uint8_t tipo, uint8_t sequencia, uint8_t tamanho, uint8_t *dados);
+
 
 #endif

@@ -1,8 +1,9 @@
 #include "rede.h"
 
-void enviar_arquivo(int socket, const char *nome_do_arquivo) {
+void enviar_arquivo(int socket, const char *nome_do_arquivo, uint8_t tipo_arquivo) {
     struct Pacote meu_pacote;
     
+    // Tenta abrir o arquivo no HD
     int arq = open(nome_do_arquivo, O_RDONLY);
     if (arq == -1) {
         perror("Erro ao abrir arquivo"); 
@@ -11,9 +12,10 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     
     uint8_t vetor_temporario[63];
     
+    // Configura o Timeout de 0.2s
     struct timeval tv;
     tv.tv_sec = 0;       
-    tv.tv_usec = 200000; // 0.2s
+    tv.tv_usec = 200000; 
     setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     
     struct Pacote pacote_ack;   
@@ -21,52 +23,51 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     uint8_t cont = 0;
     ssize_t lidos;
     
-    // Lemos no max 30 bytes
-    // Assim, se todos precisarem de 0xFF, o pacote vai para 60 bytes, nunca ultrapassando o limite físico de 63 bytes da struct
+    // Lemos no max 30 bytes do arquivo por vez
     while ((lidos = read(arq, vetor_temporario, 30)) > 0) {
         
+        // Limpa lixo da placa de rede
         while(recv(socket, &pacote_ack, sizeof(pacote_ack), MSG_DONTWAIT) > 0);
         
-        // A inicializa_pacote monta os dados e calcula o crc sobre os dados limpos
+        // Monta os dados base (tamanho, sequencia, etc)
         inicializa_pacote(&meu_pacote, cont, lidos, vetor_temporario);
+        
+        // --- AS DUAS LINHAS MÁGICAS ---
+        // Força o tipo correto (0x05, 0x06 ou 0x07) e recalcula o CRC com o novo tipo
+        meu_pacote.tipo = tipo_arquivo; 
+        meu_pacote.crc = calcula_crc(&meu_pacote); 
             
-        // BYTE STUFFING fora do loop de envio
+        // BYTE STUFFING
         for(int i = 0; i < meu_pacote.tamanho; i++){
             if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)){ 
                 
-                // Desloca os bytes
-                // 62 é o último índice do vetor de dados[63]
                 for(int j = 62; j > i + 1; j--){
                     meu_pacote.dados[j] = meu_pacote.dados[j - 1];
                 }
                 
-                // Injeta o 0xFF depois do byte problematico
                 meu_pacote.dados[i + 1] = 0xFF;
-                meu_pacote.tamanho++; // O tamanho do pacote aumentou
-                
-                // Pula o 0xFF que acabamos de adicionar
+                meu_pacote.tamanho++; 
                 i++;
             }                                   
         }
         
         bool sucesso = false;
         
+        // PARA-E-ESPERA
         while (!sucesso) {
             
-            // Limpa o lixo da placa de rede antes de enviar
             uint8_t buffer_lixo[2048];
             while(recv(socket, buffer_lixo, sizeof(buffer_lixo), MSG_DONTWAIT) > 0);
 
             send(socket, &meu_pacote, sizeof(meu_pacote), 0);
                     
-            // Espera pelo ACK
             while(true) {
                 uint8_t buffer_ack[2048];
                 bytes = recv(socket, buffer_ack, sizeof(buffer_ack), 0);
                     
                 if (bytes < 0) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        std::cout << "Timeout Real - Reenviando SEQ " << (int)cont << std::endl;
+                        std::cout << "[Timeout] Reenviando pacote de arquivo SEQ " << (int)cont << std::endl;
                     }
                     break; 
                 }
@@ -74,7 +75,8 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
                 if (bytes >= (ssize_t)sizeof(struct Pacote) && buffer_ack[0] == 0x7E) {
                     memcpy(&pacote_ack, buffer_ack, sizeof(struct Pacote));
                     
-                    if (pacote_ack.tipo == 0x0A && pacote_ack.sequencia == meu_pacote.sequencia) {
+                    // CORREÇÃO DO BUG DO ACK: Agora espera 0x00 (ACK) em vez de 0x0A
+                    if (pacote_ack.tipo == 0x00 && pacote_ack.sequencia == meu_pacote.sequencia) {
                         if (pacote_ack.crc == calcula_crc(&pacote_ack)) {
                             sucesso = true;
                             break;
@@ -90,7 +92,7 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo) {
     // PACOTE DE FIM DE ARQUIVO (EOF)
     struct Pacote pacote_fim;
     inicializa_pacote(&pacote_fim, cont, 0, NULL); 
-    pacote_fim.tipo = 0x09; 
+    pacote_fim.tipo = 0x10;
     pacote_fim.crc = calcula_crc(&pacote_fim);
     send(socket, &pacote_fim, sizeof(pacote_fim), 0);
                 

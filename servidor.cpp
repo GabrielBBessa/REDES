@@ -65,22 +65,23 @@ int main(int argc, char *argv[]) {
 				// Move o personagem na matriz
 				item_pisado = mover_pacman(mapa, &pos_pacman, pacote_recebido.tipo);
 			
-				// Verificações de itens
-				if (item_pisado >= '1' && item_pisado <= '6') {
-					std::cout << "ENVIAR ARQUIVO " << std::endl;
-					if (item_pisado == 1)	enviar_arquivo(sock, "1.txt");
-					if (item_pisado == 2)	enviar_arquivo(sock, "2.txt");
-					if (item_pisado == 3)	enviar_arquivo(sock, "3.jpg");
-					if (item_pisado == 4)	enviar_arquivo(sock, "4.jpg");
-					if (item_pisado == 5)	enviar_arquivo(sock, "5.mp4");
-					if (item_pisado == 6)	enviar_arquivo(sock, "6.mp4");
-				}
-				else if (item_pisado == 'R' || item_pisado == 'B' || item_pisado == 'G' || item_pisado == 'Y') {
-					if (item_pisado == 'R')	enviar_arquivo(sock, "vermelho.txt");
-					if (item_pisado == 'B')	enviar_arquivo(sock, "azul.txt");
-					if (item_pisado == 'G')	enviar_arquivo(sock, "verde.jpg");
-					if (item_pisado == 'Y')	enviar_arquivo(sock, "amarelo.jpg");
-				}
+				// Verificações dos itens				
+				if (item_pisado == '1')	enviar_arquivo(sock, "1.txt",0x05);
+				if (item_pisado == '2')	enviar_arquivo(sock, "2.txt",0x05);
+				if (item_pisado == '3')	enviar_arquivo(sock, "3.jpg",0x06);
+				if (item_pisado == '4')	enviar_arquivo(sock, "4.jpg",0x06);
+				if (item_pisado == '5')	enviar_arquivo(sock, "5.mp4",0x07);
+				if (item_pisado == '6')	enviar_arquivo(sock, "6.mp4",0x07);
+				
+				
+				// Verificações dos fantasmas	
+				if (item_pisado == 'R')	enviar_arquivo(sock, "vermelho.jpg",0x06);
+				if (item_pisado == 'B')	enviar_arquivo(sock, "azul.jpg",0x06);
+				if (item_pisado == 'G')	enviar_arquivo(sock, "verde.jpg",0x06);
+				if (item_pisado == 'Y')	enviar_arquivo(sock, "amarelo.jpg",0x06);
+
+
+				
 			
 				// Atualiza o estado da visão
 				rodadas++; 

@@ -34,8 +34,6 @@ int main(int argc, char *argv[]) {
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
 	
-	int arq;
-	
 	struct Pacote pacote_inicial;
 	while(true) {
 		if (receber_pacote(socket, &pacote_inicial)) {
@@ -69,6 +67,14 @@ int main(int argc, char *argv[]) {
 		// Fica travado esperando a consequência do seu movimento
 		struct Pacote pacote_recebido;
 		resposta_recebida = false;
+		
+		// Guarda o nome do arquivo que está sendo montado
+		std::string nome_coringa = ""; 
+		
+		// Controla se apaga o arquivo velho ou cola no final
+		bool primeiro_pacote = true;   
+		
+		int flags;
 
 		while (!resposta_recebida) {
 			if (receber_pacote(socket, &pacote_recebido)) {
@@ -81,22 +87,41 @@ int main(int argc, char *argv[]) {
 				}
 				// Recebeu pacote Tipo 5 (txt), 6 (jpg) ou 7 (mp4)
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
-    
-					// Descobre a extensão baseada no tipo que o professor definiu
-					std::string nome_coringa = "recompensa";
-					if (pacote_recebido.tipo == 0x05) nome_coringa += ".txt";
-					if (pacote_recebido.tipo == 0x06) nome_coringa += ".jpg";
-					if (pacote_recebido.tipo == 0x07) nome_coringa += ".mp4";
+				
+					nome_coringa = "recompensa";
+					
+					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
 
-					// Abre o arquivo em modo APPEND e joga os dados dentro
-					arq = open(nome_coringa.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
+					
+						
+					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
+					
+				}
+				
+				// Se for o 1º pacote, usa O_TRUNC para zerar o arquivo velho. Senão, usa O_APPEND.
+				flags = O_WRONLY | O_CREAT | (primeiro_pacote ? O_TRUNC : O_APPEND);
+				primeiro_pacote = false; 
+
+				int arq = open(nome_coringa.c_str(), flags, 0666);
+				if (arq != -1) {
 					write(arq, pacote_recebido.dados, pacote_recebido.tamanho);
 					close(arq);
-
 				}
-
-				// Recebeu pacote Tipo 16 (Fim de Transmissão)
-				else if (pacote_recebido.tipo == 0x10)	system("xdg-open recompensa* > /dev/null 2>&1 &");
+			}
+			// Recebeu o Fim da Transmissão (Tipo 0x10)
+			else if (pacote_recebido.tipo == 0x10) {
+				std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
+					
+				// Dispara o comando para o Ubuntu abrir o arquivo
+				std::string comando = "xdg-open " + nome_coringa + " > /dev/null 2>&1 &";
+				system(comando.c_str());
+					
+				// Se for texto, garante que imprima no terminal também
+				if (nome_coringa == "recompensa.txt") { 
+					std::cout << "Conteúdo do texto:\n";
+					system(("cat " + nome_coringa).c_str());
+				}
 			}
 		}
 	}
