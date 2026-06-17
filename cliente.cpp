@@ -95,7 +95,6 @@ int main(int argc, char *argv[]) {
 					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
 					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
 					
-					// A GRAVAÇÃO AGORA ESTÁ DENTRO DO ELSE IF!
 					flags = O_WRONLY | O_CREAT | (primeiro_pacote ? O_TRUNC : O_APPEND);
 					primeiro_pacote = false; 
 
@@ -110,17 +109,17 @@ int main(int argc, char *argv[]) {
 				else if (pacote_recebido.tipo == 0x10) {
 					std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
 						
-					// Dispara o comando para o Ubuntu abrir o arquivo
 					std::string comando = "xdg-open " + nome_coringa + " > /dev/null 2>&1 &";
 					system(comando.c_str());
-
 				}			
-			}
-			else if (pacote_recebido.tipo == 15) {
-				std::cout << "\nO Servidor encerrou a partida! Fechando o jogo..." << std::endl;
-				return 0; // Fecha o programa do cliente imediatamente!
-			}
+
+				else if (pacote_recebido.tipo == 15) {
+					std::cout << "\nO Servidor encerrou a partida! Fechando o jogo..." << std::endl;
+					return 0; 
+				}
+				
+			} 
 		} 
-	}
+	} 
     return 0;
 }

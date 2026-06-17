@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
 			}
-        
+					      
 			// Verifica se é uma das 4 setas de Movimento
 			if (pacote_recebido.tipo >= 0x0A && pacote_recebido.tipo <= 0x0D) {
 			
@@ -100,7 +100,11 @@ int main(int argc, char *argv[]) {
 				if (item_pisado == 'G')	enviar_arquivo(sock, "verde.jpg",0x06);
 				if (item_pisado == 'Y')	enviar_arquivo(sock, "amarelo.jpg",0x06);
 
-
+				
+				if( fim_jogo == 2){ 
+					enviar_mensagem(sock, 15, seq, 0, NULL);
+					break;
+				}
 				
 			
 				// Atualiza o estado da visão
@@ -115,12 +119,6 @@ int main(int argc, char *argv[]) {
 				// Envia o mapa de volta para o cliente
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
-				
-				if( fim_jogo == 2){ 
-					enviar_mensagem(sock, 15, seq, 0, NULL);
-					break;
-				}
-					
 			}
 		}
 	}
