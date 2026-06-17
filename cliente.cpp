@@ -113,12 +113,6 @@ int main(int argc, char *argv[]) {
 					// Dispara o comando para o Ubuntu abrir o arquivo
 					std::string comando = "xdg-open " + nome_coringa + " > /dev/null 2>&1 &";
 					system(comando.c_str());
-						
-					// Se for texto, garante que imprima no terminal também
-					if (nome_coringa == "recompensa.txt") { 
-						std::cout << "Conteúdo do texto:\n";
-						system(("cat " + nome_coringa).c_str());
-					}
 
 				}			
 			}
