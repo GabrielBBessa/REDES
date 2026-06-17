@@ -41,6 +41,8 @@ int main(int argc, char *argv[]) {
 	
 	char item_pisado;
 	int tamanho_visao;
+	
+	int fim_jogo = 0;
 
 	while (true) {
 		struct Pacote pacote_recebido;
@@ -66,12 +68,30 @@ int main(int argc, char *argv[]) {
 				item_pisado = mover_pacman(mapa, &pos_pacman, pacote_recebido.tipo);
 			
 				// Verificações dos itens				
-				if (item_pisado == '1')	enviar_arquivo(sock, "1.txt",0x05);
-				if (item_pisado == '2')	enviar_arquivo(sock, "2.txt",0x05);
-				if (item_pisado == '3')	enviar_arquivo(sock, "3.jpg",0x06);
-				if (item_pisado == '4')	enviar_arquivo(sock, "4.jpg",0x06);
-				if (item_pisado == '5')	enviar_arquivo(sock, "5.mp4",0x07);
-				if (item_pisado == '6')	enviar_arquivo(sock, "6.mp4",0x07);
+				if (item_pisado == '1'){
+					enviar_arquivo(sock, "1.txt",0x05);
+					fim_jogo++;
+				}
+				if (item_pisado == '2'){
+					enviar_arquivo(sock, "2.txt",0x05);
+					fim_jogo++;
+				}
+				if (item_pisado == '3'){
+					enviar_arquivo(sock, "3.jpg",0x06);
+					fim_jogo++;
+				}
+				if (item_pisado == '4'){
+					enviar_arquivo(sock, "4.jpg",0x06);
+					fim_jogo++;
+				}
+				if (item_pisado == '5'){
+					enviar_arquivo(sock, "5.mp4",0x07);
+					fim_jogo++;
+				}
+				if (item_pisado == '6'){
+					enviar_arquivo(sock, "6.mp4",0x07);
+					fim_jogo++;
+				}
 				
 				
 				// Verificações dos fantasmas	
@@ -95,6 +115,9 @@ int main(int argc, char *argv[]) {
 				// Envia o mapa de volta para o cliente
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
+				
+				if( fim_jogo == 1) break;
+					
 			}
 		}
 	}
