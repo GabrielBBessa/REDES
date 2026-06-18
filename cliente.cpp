@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 				// Recebeu pacote de dados de arquivo
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
 				
-					nome_coringa = "recompensa";
+					nome_coringa = "prêmio";
 					
 					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
 					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 					system(comando.c_str());
 				}			
 
-				else if (pacote_recebido.tipo == 15) {
+				else if (pacote_recebido.tipo == 0x15) {
 					std::cout << "\nO Servidor encerrou a partida! Fechando o jogo..." << std::endl;
 					return 0; 
 				}

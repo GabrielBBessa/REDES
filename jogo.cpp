@@ -57,14 +57,17 @@ bool carregar_mapa(char mapa[40][40],const char* nome_arquivo){
 void sortear_entidades(char mapa[40][40]) {
     srand(time(NULL));
 
-    coloca_aleatorio(mapa,'P');
+    //coloca_aleatorio(mapa,'P');
+    mapa[3][3] = 'P';
     coloca_aleatorio(mapa,'R');
     coloca_aleatorio(mapa,'B');
     coloca_aleatorio(mapa,'G');
     coloca_aleatorio(mapa,'Y');
 
-    coloca_aleatorio(mapa,'1');
-    coloca_aleatorio(mapa,'2');
+    //coloca_aleatorio(mapa,'1');
+    mapa[3][15] = '1';
+    //coloca_aleatorio(mapa,'2');
+    mapa[3][20] = '2';
     coloca_aleatorio(mapa,'3');
     coloca_aleatorio(mapa,'4');
     coloca_aleatorio(mapa,'5');

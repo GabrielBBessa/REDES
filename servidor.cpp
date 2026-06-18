@@ -9,10 +9,8 @@ int main(int argc, char *argv[]) {
 	
 	char mapa[40][40];
 	
-	if (carregar_mapa(mapa , "mapa_do_jogo.csv")){ 	
-		sortear_entidades(mapa);
-		std::cout << "Mapa carregado com sucesso" << std::endl;
-	}
+	if (carregar_mapa(mapa , "mapa_do_jogo.csv") std::cout << "Mapa carregado com sucesso" << std::endl;
+
 	
 	else {
 		std::cout << "Aviso: Arquivo labirinto.csv não encontrado!" << std::endl;
@@ -102,7 +100,8 @@ int main(int argc, char *argv[]) {
 
 				
 				if( fim_jogo == 2){ 
-					enviar_mensagem(sock, 15, seq, 0, NULL);
+					enviar_mensagem(sock, 0x15, seq, 0, NULL);
+					std::cout << "\nEnviou mensagem fim de jogo" << std::endl;
 					break;
 				}
 				
