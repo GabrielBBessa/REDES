@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
 	
 	char mapa[40][40];
 	
-	if (carregar_mapa(mapa , "mapa_do_jogo.csv") std::cout << "Mapa carregado com sucesso" << std::endl;
+	if (carregar_mapa(mapa , "mapa_do_jogo.csv")) 	std::cout << "Mapa carregado com sucesso" << std::endl;
 
 	
 	else {
