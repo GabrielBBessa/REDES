@@ -30,7 +30,19 @@ int main(int argc, char *argv[]) {
     int sock = cria_raw_socket(argv[1]);
     if (sock == -1) return -1;
     
-	struct coordenada pos_pacman = encontrar_pacman(mapa);
+	struct coordenada pos_pacman = encontrar_entidade(mapa,'P');
+	struct coordenada pos_vermelho= encontrar_entidade(mapa, 'R');
+	struct coordenada pos_azul = encontrar_entidade(mapa, 'B');
+	
+	// Variáveis de memória do Fantasma vermelho
+	int dir_vermelho = 0;     
+	char chao_vermelho = '0';
+	bool vermelho_vivo = true;
+	
+	// Variáveis de memória do Fantasma azul
+	int dir_azul = 0;     
+	char chao_azul = '0';
+	bool azul_vivo = true;
 	
 	int rodadas = 0; 
 	uint8_t seq = 0;
@@ -53,7 +65,15 @@ int main(int argc, char *argv[]) {
 				// Reseta o estado do jogo caso o cliente tenha sido reiniciado
 				rodadas = 0;
 				raio_atual = 1;
-				pos_pacman = encontrar_pacman(mapa);                
+				dir_vermelho = 0;
+				chao_vermelho = '0';
+				vermelho_vivo = true;
+				dir_azul = 0;
+				chao_azul = '0';
+				azul_vivo = true;
+				pos_pacman = encontrar_entidade(mapa,'P'); 
+				pos_vermelho = encontrar_entidade(mapa, 'R');       
+				pos_azul = encontrar_entidade(mapa, 'B');           
 				tamanho_visao = gerar_visao(mapa, pos_pacman, raio_atual, visao);
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
@@ -92,9 +112,15 @@ int main(int argc, char *argv[]) {
 				}
 				
 				
-				// Verificações dos fantasmas	
-				if (item_pisado == 'R')	enviar_arquivo(sock, "vermelho.jpg",0x06);
-				if (item_pisado == 'B')	enviar_arquivo(sock, "azul.jpg",0x06);
+				// Pacman pega o fantasma
+				if (item_pisado == 'R'){
+					enviar_arquivo(sock, "vermelho.jpg",0x06);
+					vermelho_vivo= true;
+				}
+				if (item_pisado == 'B'){
+					enviar_arquivo(sock, "azul.jpg",0x06);
+					azul_vivo= false;
+				}
 				if (item_pisado == 'G')	enviar_arquivo(sock, "verde.jpg",0x06);
 				if (item_pisado == 'Y')	enviar_arquivo(sock, "amarelo.jpg",0x06);
 
@@ -103,6 +129,30 @@ int main(int argc, char *argv[]) {
 					enviar_mensagem(sock, 0x15, seq, 0, NULL);
 					std::cout << "\nEnviou mensagem fim de jogo" << std::endl;
 					break;
+				}
+				
+				//Fantasma vermelho pega o pacman
+				if(vermelho_vivo){	
+					chao_vermelho = mover_fantasma_vermelho(mapa, &pos_vermelho, &dir_vermelho, chao_vermelho);					
+					if (chao_vermelho == 'P') {
+						enviar_arquivo(sock, "vermelho.jpg", 0x06);					
+						// Devolve o pacman pro mapa 
+						mapa[pos_vermelho.linha][pos_vermelho.coluna] = 'P';						
+						// Mata o fantasma!
+						vermelho_vivo = false;
+					}
+				}
+				
+				// Fantasma azul pega o pacman
+				if(azul_vivo){	
+					chao_azul = mover_fantasma_azul(mapa, &pos_azul, &dir_azul, chao_azul);					
+					if (chao_azul == 'P') {
+						enviar_arquivo(sock, "azul.jpg", 0x06);					
+						// Devolve o pacman pro mapa 
+						mapa[pos_azul.linha][pos_azul.coluna] = 'P';						
+						// Mata o fantasma!
+						azul_vivo = false;
+					}
 				}
 				
 			
