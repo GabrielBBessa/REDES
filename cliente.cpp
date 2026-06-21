@@ -2,7 +2,6 @@
 
 // Função auxiliar para desenhar o mapa quadradinho na tela
 void imprimir_mapa(uint8_t *dados, int tamanho) {
-
 	int lado = sqrt(tamanho);
 	int indice = 0;
 	
@@ -16,13 +15,11 @@ void imprimir_mapa(uint8_t *dados, int tamanho) {
 }
 
 int main(int argc, char *argv[]) {
-    // Verifica se o usuário passou o nome da interface ao rodar
     if (argc < 2) {
         std::cerr << "Uso: sudo " << argv[0] << " <interface>" << std::endl;
         return 1;
     }
     
-    // Inicia raw socket
     int socket = cria_raw_socket(argv[1]);
     if (socket == -1) return -1;
     
@@ -31,22 +28,38 @@ int main(int argc, char *argv[]) {
     char jogada;
     bool resposta_recebida;
     
+    // Rastreador de pacotes repetidos do Servidor
+    int ultimo_seq_recebido = -1;
+    
+    uint8_t buffer_visao[2000];
+    int tamanho_acumulado = 0;
+    
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
 	
 	struct Pacote pacote_inicial;
 	while(true) {
 		if (receber_pacote(socket, &pacote_inicial)) {
-			if (pacote_inicial.tipo == 0x02) { // 0x02 é o Visualiza
-				imprimir_mapa(pacote_inicial.dados, pacote_inicial.tamanho);
-				break; // Recebeu a visão inicial! Pode começar o jogo.
+            
+            // Se for a mesma sequência do último, ignora (é retransmissão)
+            if (pacote_inicial.sequencia == ultimo_seq_recebido) continue;
+            ultimo_seq_recebido = pacote_inicial.sequencia;
+            
+			if (pacote_inicial.tipo == 0x02) { 
+                memcpy(&buffer_visao[tamanho_acumulado], pacote_inicial.dados, pacote_inicial.tamanho);
+				tamanho_acumulado += pacote_inicial.tamanho;
+			}
+            else if (pacote_inicial.tipo == 0x04) { 
+				imprimir_mapa(buffer_visao, tamanho_acumulado);
+                tamanho_acumulado = 0; 
+				break; 
 			}
 		}
 	}
 	
 	// LOOP PRINCIPAL DO JOGADOR
 	while (true) {  
-		std::cin >> jogada; // Fica esperando o usuário digitar e dar Enter
+		std::cin >> jogada; 
 
 		tipo_movimento = 0;
 
@@ -57,7 +70,7 @@ int main(int argc, char *argv[]) {
 		else if (jogada == 'd' || jogada == 'D') tipo_movimento = 0x0A;
 		else {
 			std::cout << "Comando inválido!" << std::endl;
-			continue; // Pula o resto e pede a tecla de novo
+			continue; 
 		}
 
 		// Envia o movimento para o Servidor
@@ -68,24 +81,29 @@ int main(int argc, char *argv[]) {
 		struct Pacote pacote_recebido;
 		resposta_recebida = false;
 		
-		// Guarda o nome do arquivo que está sendo montado
 		std::string nome_coringa = ""; 
-		
-		// Controla se apaga o arquivo velho ou cola no final
 		bool primeiro_pacote = true;   
-		
 		int flags;
 
 		while (!resposta_recebida) {
 			if (receber_pacote(socket, &pacote_recebido)) {
                 
-				// Se for o pacote do Mapa (Tipo 0x02)
+                // Filtra as retransmissões no jogo rodando!
+                if (pacote_recebido.sequencia == ultimo_seq_recebido) continue;
+                ultimo_seq_recebido = pacote_recebido.sequencia;
+
 				if (pacote_recebido.tipo == 0x02) {
-					std::cout << "\nVisão do PacMan:" << std::endl;
-					imprimir_mapa(pacote_recebido.dados, pacote_recebido.tamanho);
-					resposta_recebida = true; // Quebra o while interno e volta a pedir tecla
+					memcpy(&buffer_visao[tamanho_acumulado], pacote_recebido.dados, pacote_recebido.tamanho);
+					tamanho_acumulado += pacote_recebido.tamanho;
 				}
 				
+                else if (pacote_recebido.tipo == 0x04) {
+					std::cout << "\nVisão do PacMan:" << std::endl;
+					imprimir_mapa(buffer_visao, tamanho_acumulado);
+                    tamanho_acumulado = 0; 
+					resposta_recebida = true; // Devolve o controle pro terminal!
+				}
+                
 				// Recebeu pacote de dados de arquivo
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
 				
@@ -105,7 +123,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				
-				// Recebeu o Fim da Transmissão (Tipo 0x10)
+				// Recebeu o Fim da Transmissão (Arquivos)
 				else if (pacote_recebido.tipo == 0x10) {
 					std::cout << "\nMídia recebida com sucesso! Abrindo " << nome_coringa << "..." << std::endl;
 						
@@ -117,7 +135,6 @@ int main(int argc, char *argv[]) {
 					std::cout << "\nO Servidor encerrou a partida! Fechando o jogo..." << std::endl;
 					return 0; 
 				}
-				
 			} 
 		} 
 	} 
