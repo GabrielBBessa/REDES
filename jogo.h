@@ -33,6 +33,8 @@ char mover_fantasma_vermelho(char mapa[40][40], struct coordenada *pos, int* dir
 
 char mover_fantasma_azul(char mapa[40][40], struct coordenada *pos, int* direcao, char item_anterior);
 
+char mover_fantasma_amarelo(char mapa[40][40], struct coordenada *pos, char item_anterior);
+
 void imprimir_mapa(uint8_t *dados, int tamanho);
 
 #endif

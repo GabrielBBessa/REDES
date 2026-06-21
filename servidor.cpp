@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
 	struct coordenada pos_pacman = encontrar_entidade(mapa,'P');
 	struct coordenada pos_vermelho= encontrar_entidade(mapa, 'R');
 	struct coordenada pos_azul = encontrar_entidade(mapa, 'B');
+	struct coordenada pos_amarelo = encontrar_entidade(mapa, 'Y');
 	
 	// Variáveis de memória do Fantasma vermelho
 	int dir_vermelho = 0;     
@@ -43,6 +44,10 @@ int main(int argc, char *argv[]) {
 	int dir_azul = 0;     
 	char chao_azul = '0';
 	bool azul_vivo = true;
+	
+	// Variáveis de memória do Fantasma amarelo     
+	char chao_amarelo = '0';
+	bool amarelo_vivo = true;
 	
 	int rodadas = 0; 
 	uint8_t seq = 0;
@@ -71,9 +76,12 @@ int main(int argc, char *argv[]) {
 				dir_azul = 0;
 				chao_azul = '0';
 				azul_vivo = true;
+				chao_amarelo = '0';
+				amarelo_vivo = true;
 				pos_pacman = encontrar_entidade(mapa,'P'); 
 				pos_vermelho = encontrar_entidade(mapa, 'R');       
-				pos_azul = encontrar_entidade(mapa, 'B');           
+				pos_azul = encontrar_entidade(mapa, 'B');    
+				pos_amarelo = encontrar_entidade(mapa, 'Y');        
 				tamanho_visao = gerar_visao(mapa, pos_pacman, raio_atual, visao);
 				enviar_mensagem(sock, 0x02, seq, tamanho_visao, (uint8_t*)visao);
 				seq++;
@@ -122,7 +130,10 @@ int main(int argc, char *argv[]) {
 					azul_vivo= false;
 				}
 				if (item_pisado == 'G')	enviar_arquivo(sock, "verde.jpg",0x06);
-				if (item_pisado == 'Y')	enviar_arquivo(sock, "amarelo.jpg",0x06);
+				if (item_pisado == 'Y'){	
+					enviar_arquivo(sock, "amarelo.jpg",0x06);
+					amarelo_vivo= false;
+				}
 
 				
 				if( fim_jogo == 2){ 
@@ -152,6 +163,18 @@ int main(int argc, char *argv[]) {
 						mapa[pos_azul.linha][pos_azul.coluna] = 'P';						
 						// Mata o fantasma!
 						azul_vivo = false;
+					}
+				}
+				
+				// Fantasma amarelo pega o pacman
+				if(amarelo_vivo){	
+					chao_amarelo = mover_fantasma_amarelo(mapa, &pos_amarelo, chao_amarelo);					
+					if (chao_amarelo == 'P') {
+						enviar_arquivo(sock, "amarelo.jpg", 0x06);					
+						// Devolve o pacman pro mapa 
+						mapa[pos_amarelo.linha][pos_amarelo.coluna] = 'P';						
+						// Mata o fantasma!
+						amarelo_vivo = false;
 					}
 				}
 				

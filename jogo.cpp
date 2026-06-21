@@ -69,12 +69,11 @@ void sortear_entidades(char mapa[40][40]) {
 
     //coloca_aleatorio(mapa,'P');
     mapa[3][3] = 'P';
-    //coloca_aleatorio(mapa,'R');
-    mapa[4][8] = 'R';
-	mapa[4][4] = 'B';
-    //coloca_aleatorio(mapa,'B');
+    coloca_aleatorio(mapa,'R');
+    coloca_aleatorio(mapa,'B');
     //coloca_aleatorio(mapa,'G');
     //coloca_aleatorio(mapa,'Y');
+    mapa[6][7] = 'Y';
 
     //coloca_aleatorio(mapa,'1');
     mapa[3][15] = '1';
@@ -288,65 +287,69 @@ char mover_fantasma_azul(char mapa[40][40], struct coordenada *pos, int* direcao
     return item_destino;
 }
 
-/*
-char mover_fantasma_vermelho(char mapa[40][40], struct coordenada *pos, int direcao){
-    int x = pos->linha;
-    int y = pos->coluna;
-    int andou = 0;
+char mover_fantasma_amarelo(char mapa[40][40], struct coordenada *pos, char item_anterior){
 
-    char item_destino = mapa[x][y];
+    int nova_linha = pos->linha;
+    int nova_coluna = pos->coluna;
+    int andou = 0;
+    
+    int direcao = rand() % 4;
+
 
     while (!andou){
-        if (!direcao){
-            if (x++ == '0'){
-                x++;
+        if (direcao == 0){
+            if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
+                nova_linha--;
                 andou = 1;
             }
             else
-                direcao = 3;
-        }
-
-        if (direcao == 3){
-            if (y++ == '0'){
-                y++;
-                andou = 1;
-            }
-            else
-                direcao = 2;
-        }
-
-        if (direcao == 2){
-            if (x-- == '0'){
-                x--;
-                andou = 1;
-            }
-            else
-                direcao = 1;
+				direcao = rand() % 4;
         }
 
         if (direcao == 1){
-            if (y-- == '0'){
-                y--;
+            if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
+                nova_coluna--;
                 andou = 1;
             }
             else
-                direcao = 0;
+                direcao = rand() % 4;
         }
-    }
 
-    // Apaga o fantasma da casa antiga, deixando um rastro de chão '0'
-    mapa[x][y] = '0';
+        if (direcao == 2){
+            if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
+                nova_linha++;
+                andou = 1;
+            }
+            else
+                direcao = rand() % 4;
+        }
+
+        if (direcao == 3){
+            if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
+                nova_coluna++;
+                andou = 1;
+            }
+            else
+                direcao = rand() % 4;
+        }
+	}
+    
+    char item_destino = mapa[nova_linha][nova_coluna];
+
+    mapa[pos->linha][pos->coluna] = item_anterior;
 
     // Atualiza a coordenada oficial do jogo
-    pos->linha = x;
-    pos->coluna = y;
+    pos->linha = nova_linha;
+    pos->coluna = nova_coluna;
 
     // Coloca o fantasma na nova casa
-    mapa[pos->linha][pos->coluna] = 'R';
+    mapa[pos->linha][pos->coluna] = 'Y';
 
     // Retorna o que tinha lá antes do fantasma pisar
     return item_destino;
 }
+
+/*
 
 char mover_fantasma_verde(char mapa[40][40], struct coordenada *pos, int direcao){
     int x = pos->linha;
@@ -454,47 +457,6 @@ char mover_fantasma_verde(char mapa[40][40], struct coordenada *pos, int direcao
     // Retorna o que tinha lá antes do fantasma pisar
     return item_destino;
 }
-
-char mover_fantasma_amarelo(char mapa[40][40], struct coordenada *pos, int direcao){
-    int x = pos->linha;
-    int y = pos->coluna;
-    int andou = 0;
-
-    srand(time(NULL));
-
-    char item_destino = mapa[x][y];
-
-    while (!andou){
-        direcao = rand() % 4;
-        if (!direcao){
-            if (x++ == '0'){
-                x++;
-                andou = 1;
-            }
-        }
-
-        if (direcao == 3){
-            if (y++ == '0'){
-                y++;
-                andou = 1;
-            }
-        }
-
-        if (direcao == 2){
-            if (x-- == '0'){
-                x--;
-                andou = 1;
-            }
-        }
-
-        if (direcao == 1){
-            if (y-- == '0'){
-                y--;
-                andou = 1;
-            }
-        }
-    }
-    return item_destino;
-}
 */
+
 
