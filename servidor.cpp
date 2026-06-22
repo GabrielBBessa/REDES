@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 	bool azul_vivo = true;
 	
 	// Variáveis de memória do Fantasma verde
-	int lado_verde = 0;
+	int lado_verde = 1;
 	int dir_verde = 0;     
 	char chao_verde = '0';
 	bool verde_vivo = true;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 				chao_amarelo = '0';
 				amarelo_vivo = true;
 				pos_pacman = encontrar_entidade(mapa,'P'); 
-				pos_vermelho = encontrar_entidade(mapa, 'R');       
+				pos_vermelho = encontrar_entidade(mapa, 'R'); 
 				pos_azul = encontrar_entidade(mapa, 'B');    
 				pos_verde = encontrar_entidade(mapa, 'G');       
 				pos_amarelo = encontrar_entidade(mapa, 'Y');  
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
 				rodadas++; 
 				raio_atual = 1 + (rodadas / 5);
                 
-				if (raio_atual > 9) raio_atual = 9; 
+				if (raio_atual > 20) raio_atual = 20; 
 
 				// Recorta o mapa
 				tamanho_visao = gerar_visao(mapa, pos_pacman, raio_atual, visao);
