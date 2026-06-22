@@ -86,7 +86,8 @@ void sortear_entidades(char mapa[40][40]) {
     coloca_aleatorio(mapa,'3');
     coloca_aleatorio(mapa,'4');
     coloca_aleatorio(mapa,'5');
-    coloca_aleatorio(mapa,'6');
+    //coloca_aleatorio(mapa,'6');
+    mapa[21][22] = '6'; 
 }
 
 // Retorna a coordenada do pacman

@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
 					amarelo_vivo = false; 
 				}
 				
-				if(fim_jogo == 2){ 
+				if(fim_jogo == 6){ 
 					enviar_mensagem(sock, 0x15, seq, 0, NULL);
 					std::cout << "\nEnviou mensagem fim de jogo" << std::endl;
 					break;
