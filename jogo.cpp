@@ -67,11 +67,19 @@ bool carregar_mapa(char mapa[40][40],const char* nome_arquivo){
 void sortear_entidades(char mapa[40][40]) {
     srand(time(NULL));
 
-    coloca_aleatorio(mapa,'P');
-    coloca_aleatorio(mapa,'R');
-    coloca_aleatorio(mapa,'B');
-    coloca_aleatorio(mapa,'G');
-    coloca_aleatorio(mapa,'Y');
+    //coloca_aleatorio(mapa,'P');
+
+    mapa[21][21] = 'P'; 
+    
+	//coloca_aleatorio(mapa,'R');
+    //coloca_aleatorio(mapa,'B');
+    //coloca_aleatorio(mapa,'G');
+    //coloca_aleatorio(mapa,'Y');
+    
+    mapa[17][22] = 'G'; 
+    mapa[25][21] = 'B'; 
+    mapa[21][17] = 'R'; 
+    mapa[21][25] = 'Y'; 
 
     coloca_aleatorio(mapa,'1');
     coloca_aleatorio(mapa,'2');
@@ -167,142 +175,119 @@ char mover_fantasma_vermelho(char mapa[40][40], struct coordenada *pos, int* dir
     int nova_linha = pos->linha;
     int nova_coluna = pos->coluna;
     int andou = 0;
-    
     int tentativas = 0;
 
-	/* Direções: 0 é olhando para cima
-		1 é olhando para esquerda
-		2 é olhando para baixo 
-		3 é olhando para direita
-	*/
-
     while (!andou && tentativas < 4){
-        if (*direcao == 0){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
-                nova_coluna--;
-                andou = 1;
-            }
-            else
-                *direcao = 1;
-        }
 
-        if (*direcao == 1){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
-                nova_linha++;
-                andou = 1;
-            }
-            else
-                *direcao = 2;
-        }
+        tentativas++;
 
-        if (*direcao == 2){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
-                nova_coluna++;
-                andou = 1;
-            }
-            else
-                *direcao = 3;
-        }
+        int dir_teste;
 
-        if (*direcao == 3){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
-                nova_linha--;
-                andou = 1;
-            }
-            else
-                *direcao = 0;
+        if (tentativas == 1)
+            dir_teste = (*direcao + 3) % 4;   // direita
+        else if (tentativas == 2)
+            dir_teste = *direcao;            // frente
+        else if (tentativas == 3)
+            dir_teste = (*direcao + 1) % 4;  // esquerda
+        else
+            dir_teste = (*direcao + 2) % 4;  // volta
+
+
+        int linha = pos->linha;
+        int coluna = pos->coluna;
+
+        if (dir_teste == 0)
+            linha--;
+        else if (dir_teste == 1)
+            coluna--;
+        else if (dir_teste == 2)
+            linha++;
+        else if (dir_teste == 3)
+            coluna++;
+
+
+        if (pode_pisar(mapa[linha][coluna])){
+            nova_linha = linha;
+            nova_coluna = coluna;
+            *direcao = dir_teste;
+            andou = 1;
         }
     }
-    
-    char item_destino = mapa[nova_linha][nova_coluna];
 
-    mapa[pos->linha][pos->coluna] = item_anterior;
+    /* só atualiza se andou de verdade */
+    if (andou){
+        mapa[pos->linha][pos->coluna] = item_anterior;
 
-    // Atualiza a coordenada oficial do jogo
-    pos->linha = nova_linha;
-    pos->coluna = nova_coluna;
+        item_anterior = mapa[nova_linha][nova_coluna];
 
-    // Coloca o fantasma na nova casa
-    mapa[pos->linha][pos->coluna] = 'R';
+        pos->linha = nova_linha;
+        pos->coluna = nova_coluna;
 
-    // Retorna o que tinha lá antes do fantasma pisar
-    return item_destino;
+        mapa[pos->linha][pos->coluna] = 'R';
+    }
+
+    return item_anterior;
 }
-
 
 char mover_fantasma_azul(char mapa[40][40], struct coordenada *pos, int* direcao, char item_anterior){
 
     int nova_linha = pos->linha;
     int nova_coluna = pos->coluna;
     int andou = 0;
-    
     int tentativas = 0;
-    
-	/* Direções: 0 é olhando para cima
-		1 é olhando para esquerda
-		2 é olhando para baixo 
-		3 é olhando para direita
-	*/
-
 
     while (!andou && tentativas < 4){
-        if (*direcao == 0){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
-                nova_linha--;
-                andou = 1;
-            }
-            else
-                *direcao = 1;
+
+        tentativas++;
+
+        int dir_teste;
+
+        /* MÃO DIREITA:
+           direita -> frente -> esquerda -> volta
+        */
+
+        if (tentativas == 1)
+            dir_teste = (*direcao + 3) % 4;   // direita
+        else if (tentativas == 2)
+            dir_teste = *direcao;            // frente
+        else if (tentativas == 3)
+            dir_teste = (*direcao + 1) % 4;  // esquerda
+        else
+            dir_teste = (*direcao + 2) % 4;  // volta
+
+
+        /* checagem de movimento */
+
+        if (dir_teste == 0 && pode_pisar(mapa[pos->linha - 1][pos->coluna])){
+            nova_linha--;
+            andou = 1;
+        }
+        else if (dir_teste == 1 && pode_pisar(mapa[pos->linha][pos->coluna - 1])){
+            nova_coluna--;
+            andou = 1;
+        }
+        else if (dir_teste == 2 && pode_pisar(mapa[pos->linha + 1][pos->coluna])){
+            nova_linha++;
+            andou = 1;
+        }
+        else if (dir_teste == 3 && pode_pisar(mapa[pos->linha][pos->coluna + 1])){
+            nova_coluna++;
+            andou = 1;
         }
 
-        if (*direcao == 1){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
-                nova_coluna--;
-                andou = 1;
-            }
-            else
-                *direcao = 2;
-        }
-
-        if (*direcao == 2){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
-                nova_linha++;
-                andou = 1;
-            }
-            else
-                *direcao = 3;
-        }
-
-        if (*direcao == 3){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
-                nova_coluna++;
-                andou = 1;
-            }
-            else
-                *direcao = 0;
-        }
+        if (andou)
+            *direcao = dir_teste;
     }
-    
+
     char item_destino = mapa[nova_linha][nova_coluna];
 
     mapa[pos->linha][pos->coluna] = item_anterior;
 
-    // Atualiza a coordenada oficial do jogo
     pos->linha = nova_linha;
     pos->coluna = nova_coluna;
 
-    // Coloca o fantasma na nova casa
     mapa[pos->linha][pos->coluna] = 'B';
 
-    // Retorna o que tinha lá antes do fantasma pisar
     return item_destino;
 }
 
@@ -311,123 +296,82 @@ char mover_fantasma_verde(char mapa[40][40], struct coordenada *pos, int* direca
     int nova_linha = pos->linha;
     int nova_coluna = pos->coluna;
     int andou = 0;
-    
-    int direcao_antiga = *direcao;
-    
     int tentativas = 0;
+    
+    int livres = 0;
+    if (pode_pisar(mapa[pos->linha - 1][pos->coluna])) livres++; // Cima
+    if (pode_pisar(mapa[pos->linha + 1][pos->coluna])) livres++; // Baixo
+    if (pode_pisar(mapa[pos->linha][pos->coluna - 1])) livres++; // Esquerda
+    if (pode_pisar(mapa[pos->linha][pos->coluna + 1])) livres++; // Direita
+    
+    // Se for uma bifurcação real (> 2), alterna o lado imediatamente
+    if (livres > 2) {
+        *lado = (*lado == 1) ? 0 : 1;
+    }
 
     while (!andou && tentativas < 4){
-    	// Lado 0 mão esquerda , lado 1 mão direita
-    	if(*lado == 0){
-    	
-			if (*direcao == 0) *direcao = 3;
-			else if (*direcao == 1) *direcao = 0;
-			else if (*direcao == 2) *direcao = 1;
-			else if (*direcao == 3) *direcao = 2;
-			
-				if (*direcao == 0){
-				tentativas++;
-		        if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
-		            nova_linha--;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 1;
-		    }
 
-		    if (*direcao == 1){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
-		            nova_coluna++;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 2;
-		    }
+        tentativas++;
 
-		    if (*direcao == 2){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
-		            nova_linha++;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 3;
-		    }
+        int dir_teste;
 
-		    if (*direcao == 3){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
-		            nova_coluna--;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 0;
-		    }
+        /* escolhe regra atual */
+        if (*lado == 1){
+            /* MÃO ESQUERDA: esquerda -> frente -> direita -> volta */
+            if (tentativas == 1)
+                dir_teste = (*direcao + 1) % 4;
+            else if (tentativas == 2)
+                dir_teste = *direcao;
+            else if (tentativas == 3)
+                dir_teste = (*direcao + 3) % 4;
+            else
+                dir_teste = (*direcao + 2) % 4;
         }
-    	if(*lado == 1){
-    	
-			if (*direcao == 0) *direcao = 1;
-			else if (*direcao == 1) *direcao = 2;
-			else if (*direcao == 2) *direcao = 3;
-			else if (*direcao == 3) *direcao = 0;
-			
-		    if (*direcao == 0){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
-		            nova_linha--;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 1;
-		    }
+        else{
+            /* MÃO DIREITA: direita -> frente -> esquerda -> volta */
+            if (tentativas == 1)
+                dir_teste = (*direcao + 3) % 4;
+            else if (tentativas == 2)
+                dir_teste = *direcao;
+            else if (tentativas == 3)
+                dir_teste = (*direcao + 1) % 4;
+            else
+                dir_teste = (*direcao + 2) % 4;
+        }
 
-		    if (*direcao == 1){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
-		            nova_coluna--;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 2;
-		    }
 
-		    if (*direcao == 2){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
-		            nova_linha++;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 3;
-		    }
+        /* tenta mover */
 
-		    if (*direcao == 3){
-		    tentativas++;
-		        if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
-		            nova_coluna++;
-		            andou = 1;
-		        }
-		        else
-		            *direcao = 0;
-		    }
-		}		  
+        if (dir_teste == 0 && pode_pisar(mapa[pos->linha - 1][pos->coluna])){
+            nova_linha--;
+            andou = 1;
+        }
+        else if (dir_teste == 1 && pode_pisar(mapa[pos->linha][pos->coluna - 1])){
+            nova_coluna--;
+            andou = 1;
+        }
+        else if (dir_teste == 2 && pode_pisar(mapa[pos->linha + 1][pos->coluna])){
+            nova_linha++;
+            andou = 1;
+        }
+        else if (dir_teste == 3 && pode_pisar(mapa[pos->linha][pos->coluna + 1])){
+            nova_coluna++;
+            andou = 1;
+        }
+
+        if (andou)
+            *direcao = dir_teste;
     }
-    
+
     char item_destino = mapa[nova_linha][nova_coluna];
 
     mapa[pos->linha][pos->coluna] = item_anterior;
 
-    // Atualiza a coordenada oficial do jogo
     pos->linha = nova_linha;
     pos->coluna = nova_coluna;
 
-    // Coloca o fantasma na nova casa
     mapa[pos->linha][pos->coluna] = 'G';
 
-	if (*direcao != direcao_antiga) *lado = 1 - *lado;
-
-    // Retorna o que tinha lá antes do fantasma pisar
     return item_destino;
 }
 
@@ -438,52 +382,32 @@ char mover_fantasma_amarelo(char mapa[40][40], struct coordenada *pos, char item
     int andou = 0;
     
     int direcao = rand() % 4;
+	int linha_sorteada;
+	int col_sorteada;
+    
     
     int tentativas = 0;
 
 
     while (!andou && tentativas < 4){
-        if (direcao == 0){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha - 1][pos->coluna])){
-                nova_linha--;
-                andou = 1;
-            }
-            else
-				direcao = rand() % 4;
-        }
-
-        if (direcao == 1){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna - 1])){
-                nova_coluna--;
-                andou = 1;
-            }
-            else
-                direcao = rand() % 4;
-        }
-
-        if (direcao == 2){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha + 1][pos->coluna])){
-                nova_linha++;
-                andou = 1;
-            }
-            else
-                direcao = rand() % 4;
-        }
-
-        if (direcao == 3){
-        	tentativas++;
-            if (pode_pisar(mapa[pos->linha][pos->coluna + 1])){
-                nova_coluna++;
-                andou = 1;
-            }
-            else
-                direcao = rand() % 4;
-        }
-	}
     
+		linha_sorteada = pos->linha;
+		col_sorteada = pos->coluna;
+		
+		if (direcao == 0) linha_sorteada--;      // Cima
+        else if (direcao == 1) col_sorteada--;   // Esquerda
+        else if (direcao == 2) linha_sorteada++; // Baixo
+        else if (direcao == 3) col_sorteada++;   // Direita		
+        
+        // Verifica se pode pisar na casa alvo
+        if (pode_pisar(mapa[linha_sorteada][col_sorteada])) {
+            nova_linha = linha_sorteada;
+            nova_coluna = col_sorteada;
+            andou = 1;
+        } 
+        else 	direcao = rand() % 4;
+    }
+
     char item_destino = mapa[nova_linha][nova_coluna];
 
     mapa[pos->linha][pos->coluna] = item_anterior;
