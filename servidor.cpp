@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
     int sock = cria_raw_socket(argv[1]);
     if (sock == -1) return -1;
     
+    // Salva a coordenada de cada entidade
 	struct coordenada pos_pacman = encontrar_entidade(mapa,'P');
 	struct coordenada pos_vermelho= encontrar_entidade(mapa, 'R');
 	struct coordenada pos_azul = encontrar_entidade(mapa, 'B');
@@ -58,12 +59,13 @@ int main(int argc, char *argv[]) {
 	char chao_amarelo = '0';
 	bool amarelo_vivo = true;
 	
+	// Variáveis para controle da lanterna
 	int rodadas = 0; 
 	uint8_t seq = 0;
-	int raio_atual = 1;
-    
+	int raio_atual = 1;  
 	char visao[2000];
 	
+	// Variáveis para a lógica interna do jogo 
 	char item_pisado;
 	int tamanho_visao;
 	int fim_jogo = 0;
@@ -97,6 +99,7 @@ int main(int argc, char *argv[]) {
                 
 				tamanho_visao = gerar_visao(mapa, pos_pacman, raio_atual, visao);
                 
+                // Lógica do envio do mapa 
 				int enviados = 0;
 				while (enviados < tamanho_visao) {
 					int lote = (tamanho_visao - enviados > 30) ? 30 : (tamanho_visao - enviados);
@@ -140,7 +143,7 @@ int main(int argc, char *argv[]) {
 					fim_jogo++; 
 				}
 				
-				// Pacman pega o fantasma
+				// Pacman pega os fantasmas				
 				if (item_pisado == 'R'){ 
 					enviar_arquivo(sock, "vermelho.jpg",0x06); 
 					vermelho_vivo = false; 
@@ -158,13 +161,14 @@ int main(int argc, char *argv[]) {
 					amarelo_vivo = false; 
 				}
 				
+				// Finaliza o jogo
 				if(fim_jogo == 6){ 
 					enviar_mensagem(sock, 0x15, seq, 0, NULL);
 					std::cout << "\nEnviou mensagem fim de jogo" << std::endl;
 					break;
 				}
 				
-				//Fantasma vermelho pega o pacman
+				//Fantasma vermelho encontra o pacman
 				if(vermelho_vivo){	
 					chao_vermelho = mover_fantasma_vermelho(mapa, &pos_vermelho, &dir_vermelho, chao_vermelho);					
 					if (chao_vermelho == 'P') {
@@ -174,7 +178,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				
-				// Fantasma azul pega o pacman
+				// Fantasma azul encontra o pacman
 				if(azul_vivo){	
 					chao_azul = mover_fantasma_azul(mapa, &pos_azul, &dir_azul, chao_azul);					
 					if (chao_azul == 'P') {
@@ -184,7 +188,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				
-				// Fantasma verde pega o pacman
+				// Fantasma verde encontra o pacman
 				if(verde_vivo){	
 					chao_verde = mover_fantasma_verde(mapa, &pos_verde, &dir_verde, chao_verde,&lado_verde);
 					if (chao_verde == 'P') {
@@ -194,7 +198,7 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				
-				// Fantasma amarelo pega o pacman
+				// Fantasma amarelo encontra o pacman
 				if(amarelo_vivo){	
 					chao_amarelo = mover_fantasma_amarelo(mapa, &pos_amarelo, chao_amarelo);					
 					if (chao_amarelo == 'P') {
@@ -213,7 +217,7 @@ int main(int argc, char *argv[]) {
 				// Recorta o mapa
 				tamanho_visao = gerar_visao(mapa, pos_pacman, raio_atual, visao);
                     
-				// FRAGMENTAÇÃO DO MOVIMENTO
+				// Fragmentação do turno
 				int enviados = 0;
 				while (enviados < tamanho_visao) {
 					int lote = (tamanho_visao - enviados > 30) ? 30 : (tamanho_visao - enviados);

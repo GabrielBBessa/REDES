@@ -23,7 +23,7 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo, uint8_t tipo_arquiv
     uint8_t cont = 0;
     ssize_t lidos;
     
-    // Lemos no max 30 bytes do arquivo por vez
+    // Le no max 30 bytes do arquivo por vez
     while ((lidos = read(arq, vetor_temporario, 30)) > 0) {
         
         // Limpa lixo da placa de rede
@@ -32,7 +32,6 @@ void enviar_arquivo(int socket, const char *nome_do_arquivo, uint8_t tipo_arquiv
         // Monta os dados base (tamanho, sequencia, etc)
         inicializa_pacote(&meu_pacote, cont, lidos, vetor_temporario);
         
-        // --- AS DUAS LINHAS MÁGICAS ---
         // Força o tipo correto (0x05, 0x06 ou 0x07) e recalcula o CRC com o novo tipo
         meu_pacote.tipo = tipo_arquivo; 
         meu_pacote.crc = calcula_crc(&meu_pacote); 
@@ -151,7 +150,7 @@ bool receber_pacote(int socket, struct Pacote *target) {
                     pacote_ack.tipo = 0x00; // 0x00 é o código de ACK (Confirmação)
                     pacote_ack.crc = calcula_crc(&pacote_ack);
                     
-                    // Atira a confirmação de volta pelo mesmo socket
+                    // Envia a confirmação de volta pelo mesmo socket
                     send(socket, &pacote_ack, sizeof(pacote_ack), 0);
 
                     return true;
@@ -166,32 +165,29 @@ bool receber_pacote(int socket, struct Pacote *target) {
 void enviar_mensagem(int socket, uint8_t tipo, uint8_t sequencia, uint8_t tamanho, uint8_t *dados) {
     struct Pacote meu_pacote;
     
-    // Inicializa o pacote com os dados crus da memória (ex: vetor do mapa)
+    // Monta os dados base (tamanho, sequencia, etc)
     inicializa_pacote(&meu_pacote, sequencia, tamanho, dados);
     
-    // Sobrescreve o tipo com o que foi passado no parâmetro (ex: 0x02 para Visualiza)
+    // Sobrescreve o tipo com o que foi passado no parâmetro
     meu_pacote.tipo = tipo; 
 
-    // APLICA O BYTE STUFFING
-    // Varre o payload procurando os bytes proibidos (0x81 e 0x88)
+    // BYTE STUFFING
     for(int i = 0; i < meu_pacote.tamanho; i++) {
         if((meu_pacote.dados[i] == 0x81) || (meu_pacote.dados[i] == 0x88)) { 
-            
-            // Desloca os bytes para a direita para abrir espaço
+
             for(int j = 62; j > i + 1; j--) {
                 meu_pacote.dados[j] = meu_pacote.dados[j - 1];
             }
             
-            // Injeta o 0xFF logo após o byte problemático
+
             meu_pacote.dados[i + 1] = 0xFF;
-            meu_pacote.tamanho++; // O pacote ficou um byte mais gordo
+            meu_pacote.tamanho++;
             
-            // Pula o 0xFF que acabamos de inserir para não analisá-lo
             i++;
         }                                   
     }
 
-    // Recalcula o CRC (Crucial: deve ser feito DEPOIS do Byte Stuffing)
+    // Recalcula o CRC 
     meu_pacote.crc = calcula_crc(&meu_pacote);
 
     // Configura o Timeout do socket para 0.2 segundos (Regra do trabalho)
@@ -222,10 +218,10 @@ void enviar_mensagem(int socket, uint8_t tipo, uint8_t sequencia, uint8_t tamanh
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     std::cout << "[Timeout] Reenviando pacote avulso SEQ " << (int)sequencia << std::endl;
                 }
-                break; // Quebra este laço para o loop principal reenviar o pacote
+                break; 
             }
 
-            // Se recebeu um pacote válido (tamanho correto e marcador 0x7E)
+            // Se recebeu um pacote válido 
             if (bytes >= (ssize_t)sizeof(struct Pacote) && buffer_ack[0] == 0x7E) {
                 
                 // Copia o buffer bruto para a struct para podermos ler os campos
@@ -236,7 +232,7 @@ void enviar_mensagem(int socket, uint8_t tipo, uint8_t sequencia, uint8_t tamanh
                     
                     // Valida o CRC da resposta para garantir que o ACK não corrompeu
                     if (pacote_ack.crc == calcula_crc(&pacote_ack)) {
-                        sucesso = true; // Pacote entregue e confirmado!
+                        sucesso = true; 
                         break;
                     }
                 }

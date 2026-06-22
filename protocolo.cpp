@@ -6,6 +6,7 @@ int cria_raw_socket(char* nome_interface_rede) {
         std::cerr << "Erro ao criar socket: Verifique se você é root (sudo)!" << std::endl;
         exit(-1);
     }
+    
     int ifindex = if_nametoindex(nome_interface_rede);
     struct sockaddr_ll endereco = {0}; 
     endereco.sll_family = AF_PACKET;       
@@ -30,7 +31,7 @@ int cria_raw_socket(char* nome_interface_rede) {
 
 uint8_t calcula_crc(struct Pacote *p) {
     uint8_t crc = 0x00;
-    uint8_t *dados = (uint8_t *)p; // Trata a struct como um array de bytes
+    uint8_t *dados = (uint8_t *)p;
     
 	
 	// Já ignorando o proprio CRC
@@ -49,14 +50,14 @@ uint8_t calcula_crc(struct Pacote *p) {
     return crc;
 }
 
-// Preenche o pacote 
+// Preenche o pacote com as respectivas informações
 void inicializa_pacote(struct Pacote *meu_pacote, uint8_t num_sequencia , size_t lidos , uint8_t *vetor_leitura){
 
 	memset(meu_pacote, 0, sizeof(struct Pacote)); 	// Preenche tudo com zero
 	
-	meu_pacote->marcador = 0x7E;           			// O 01111110 fixo do protocolo
-	meu_pacote->tamanho = (uint8_t)lidos; 			// Salva quantos bytes reais de dados há aqui
-	meu_pacote->sequencia = num_sequencia; 			// Uma variável que você incrementa (0, 1, 2...)
+	meu_pacote->marcador = 0x7E;           			// 01111110 fixo do protocolo
+	meu_pacote->tamanho = (uint8_t)lidos; 			// Salva quantos bytes reais de dados há 
+	meu_pacote->sequencia = num_sequencia; 			
 	meu_pacote->tipo = (lidos > 0) ? 0x08 : 0x0A;              			
 
 

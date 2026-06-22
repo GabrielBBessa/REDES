@@ -2,8 +2,8 @@
 #define _PROTOCOLO_
 
 #include <iostream>
-#include <cstring>         // Para funcoes como memset e memcpy
-#include <arpa/inet.h>     // Para funções de rede como htons e tipo uint8_t
+#include <cstring>         
+#include <arpa/inet.h>     
 #include <sys/socket.h>         
 #include <net/ethernet.h>       
 #include <linux/if_packet.h>    
@@ -14,8 +14,7 @@
 #include <unistd.h>
 #include "jogo.h"
 
-// Estrutura passada pelos professores
-// tipo uint8_t garante que terá exatos 8 bits
+
 struct __attribute__((packed)) Pacote {
     uint8_t marcador;  
     uint8_t tamanho;  
@@ -24,6 +23,7 @@ struct __attribute__((packed)) Pacote {
     uint8_t dados[63];
     uint8_t crc;       
 };
+
 
 int cria_raw_socket(char* nome_interface_rede);
 uint8_t calcula_crc(struct Pacote *p);

@@ -2,9 +2,9 @@
 #define _REDE_
 
 #include <iostream>
-#include <net/ethernet.h>       // Definições de protocolos Ethernet
-#include <linux/if_packet.h>    // Estruturas para pacotes de nível de enlace (sockaddr_ll)
-#include <net/if.h>             // Para a função if_nametoindex
+#include <net/ethernet.h>       
+#include <linux/if_packet.h>   
+#include <net/if.h>            
 #include <fstream>
 #include <fcntl.h>
 #include <iomanip>
