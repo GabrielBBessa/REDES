@@ -108,57 +108,44 @@ bool receber_pacote(int socket, struct Pacote *target) {
 
         if (bytes_lidos >= (ssize_t)sizeof(struct Pacote)) {
             
-            if (buffer[0] == 0x7E) { // Verifica o Marcador
+            if (buffer[0] == 0x7E) {
                 
-                // Mapeamento do Buffer:
-                // buffer[0] = marcador
-                // buffer[1] = tamanho
-                // buffer[2] = sequencia
-                // buffer[3] = tipo
-                // buffer[4] até buffer[66] = dados (63 bytes)
-                // buffer[67] = crc
-
-                // BYTE UNSTUFFING DIRETO NO BUFFER BRUTO
-                // Lemos qual é o tamanho que o emissor diz que os dados têm agora
+                // BYTE UNSTUFFING
                 uint8_t tamanho_stuffed = buffer[1];
+                uint8_t dados_limpos[63] = {0};
+                int indice_limpo = 0;
+                int bytes_removidos = 0;
 
-                // varremos apenas a região onde ficam os dados (indice 4)
                 for (int i = 4; i < 4 + tamanho_stuffed; i++) {
-                    
-                    // Se achar o byte problemático e o próximo for o 0xFF da injeção
-                    if ((buffer[i] == 0x81 || buffer[i] == 0x88) && buffer[i + 1] == 0xFF) {
-                        
-                        // Puxa APENAS a região de dados para a esquerda para esmagar o 0xFF
-                        // Não podemos puxar o buffer inteiro, senão o CRC (índice 67) sai do lugar
-                        for (int j = i + 1; j < 66; j++) {
-                            buffer[j] = buffer[j + 1];
-                        }
-                        buffer[66] = 0; // Zera a sujeira no final dos dados
+                    dados_limpos[indice_limpo++] = buffer[i];
 
-                        // Reduzimos o campo 'tamanho' (índice 1) do buffer
-                        buffer[1]--;
-                        tamanho_stuffed--; // Atualiza a variável do loop para não ler lixo
+                    if (buffer[i] == 0x81 || buffer[i] == 0x88) {
+                        if (i + 1 < 4 + tamanho_stuffed && buffer[i + 1] == 0xFF) {
+                            bytes_removidos++;
+                            i++;
+                        }
                     }
                 }
 
+                buffer[1] = buffer[1] - bytes_removidos; // Corrige o tamanho total do payload
+                memcpy(&buffer[4], dados_limpos, buffer[1]);
+                memset(&buffer[4 + buffer[1]], 0, 63 - buffer[1]); // Zera o espaço restante
+
                 // COPIA PARA A STRUCT E VALIDAÇÃO DE CRC
-                // Agora o buffer está perfeitamente limpo. Copiamos para a struct.
                 struct Pacote pacote_recebido;
                 memcpy(&pacote_recebido, buffer, sizeof(struct Pacote));
 
                 uint8_t crc_recebido = pacote_recebido.crc;
                 pacote_recebido.crc = 0; // Zera para o cálculo
 
-                // O CRC vai bater com o emissor porque o emissor calculou 
-                // o CRC *ANTES* de injetar o 0xFF
                 if (crc_recebido == calcula_crc(&pacote_recebido)) {
-                	if (pacote_recebido.tipo == 0x00 || pacote_recebido.tipo == 0x01) {	//Tirar esse código
+                    if (pacote_recebido.tipo == 0x00 || pacote_recebido.tipo == 0x01) {
                         continue; 
                     }
                     
                     *target = pacote_recebido;
                     
-                    // 2. A MÁGICA DO PROTOCOLO: OBRIGATÓRIO ENVIAR ACK!
+                    // Enviar ACK
                     struct Pacote pacote_ack;
                     inicializa_pacote(&pacote_ack, pacote_recebido.sequencia, 0, NULL);
                     pacote_ack.tipo = 0x00; // 0x00 é o código de ACK (Confirmação)
@@ -170,7 +157,6 @@ bool receber_pacote(int socket, struct Pacote *target) {
                     return true;
                 } else {
                     std::cout << "Pacote corrompido (Erro de CRC)" << std::endl;
-                    // Se o professor exigir no futuro, você envia um pacote NACK (0x01) aqui!
                 }
             }
         }
@@ -258,5 +244,3 @@ void enviar_mensagem(int socket, uint8_t tipo, uint8_t sequencia, uint8_t tamanh
         }
     }
 }
-
-
