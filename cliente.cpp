@@ -1,6 +1,6 @@
 #include "rede.h"
 
-// Função auxiliar para desenhar o mapa quadradinho na tela
+// Função auxiliar para desenhar o mapa na tela
 void imprimir_mapa(uint8_t *dados, int tamanho) {
 	int lado = sqrt(tamanho);
 	int indice = 0;
@@ -36,6 +36,8 @@ int main(int argc, char *argv[]) {
     
 	enviar_mensagem(socket, 0x03, seq, 0, NULL);
 	seq++;
+	
+	int contador_premios = 1;
 	
 	struct Pacote pacote_inicial;
 	while(true) {
@@ -88,7 +90,7 @@ int main(int argc, char *argv[]) {
 		while (!resposta_recebida) {
 			if (receber_pacote(socket, &pacote_recebido)) {
                 
-                // Filtra as retransmissões no jogo rodando!
+                // Filtra as retransmissões no jogo rodando
                 if (pacote_recebido.sequencia == ultimo_seq_recebido) continue;
                 ultimo_seq_recebido = pacote_recebido.sequencia;
 
@@ -101,17 +103,32 @@ int main(int argc, char *argv[]) {
 					std::cout << "\nVisão do PacMan:" << std::endl;
 					imprimir_mapa(buffer_visao, tamanho_acumulado);
                     tamanho_acumulado = 0; 
-					resposta_recebida = true; // Devolve o controle pro terminal!
+					resposta_recebida = true; // Devolve o controle pro terminal
 				}
                 
 				// Recebeu pacote de dados de arquivo
 				else if (pacote_recebido.tipo >= 0x05 && pacote_recebido.tipo <= 0x07) {
-				
-					nome_coringa = "prêmio";
 					
-					if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
-					if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
-					if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
+					if(primeiro_pacote){
+						if(contador_premios == 1)	nome_coringa = "primeiro_prêmio";
+						else if(contador_premios == 2)	nome_coringa = "segundo_prêmio";
+						else if(contador_premios == 3)	nome_coringa = "terceiro_prêmio";
+						else if(contador_premios == 4)	nome_coringa = "quarto_prêmio";
+						else if(contador_premios == 5)	nome_coringa = "quinto_prêmio";
+						else if(contador_premios == 6)	nome_coringa = "sexto_prêmio";
+						else if(contador_premios == 7)	nome_coringa = "setimo_prêmio";
+						else if(contador_premios == 8)	nome_coringa = "oitavo_prêmio";
+						else if(contador_premios == 9)	nome_coringa = "nono_prêmio";
+						else if(contador_premios == 10)	nome_coringa = "decimo_prêmio";
+						
+						
+						if (pacote_recebido.tipo == 0x05)	nome_coringa += ".txt";
+						if (pacote_recebido.tipo == 0x06)	nome_coringa += ".jpg";
+						if (pacote_recebido.tipo == 0x07)	nome_coringa += ".mp4";
+					
+					
+						contador_premios++;
+					}
 					
 					flags = O_WRONLY | O_CREAT | (primeiro_pacote ? O_TRUNC : O_APPEND);
 					primeiro_pacote = false; 

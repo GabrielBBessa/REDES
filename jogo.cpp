@@ -22,7 +22,7 @@ int pode_pisar(char destino) {
 }
 
 
-// Abre o arquivo e coloca em 'mapa'
+// Abre o arquivo e coloca em mapa
 bool carregar_mapa(char mapa[40][40],const char* nome_arquivo){
 
 	//Le o arquivo
@@ -68,25 +68,31 @@ bool carregar_mapa(char mapa[40][40],const char* nome_arquivo){
 void sortear_entidades(char mapa[40][40]) {
     srand(time(NULL));
 
-    coloca_aleatorio(mapa,'P');
+	if(encontrar_entidade(mapa,'P').linha == -1)	coloca_aleatorio(mapa,'P');
 
+    if(encontrar_entidade(mapa,'R').linha == -1)	coloca_aleatorio(mapa,'R');
     
-	coloca_aleatorio(mapa,'R');
-    coloca_aleatorio(mapa,'B');
-    coloca_aleatorio(mapa,'G');
-    coloca_aleatorio(mapa,'Y');
+    if(encontrar_entidade(mapa,'B').linha == -1)	coloca_aleatorio(mapa,'B');
     
-
-
-    coloca_aleatorio(mapa,'1');
-    coloca_aleatorio(mapa,'2');
-    coloca_aleatorio(mapa,'3');
-    coloca_aleatorio(mapa,'4');
-    coloca_aleatorio(mapa,'5');
-    coloca_aleatorio(mapa,'6');
+    if(encontrar_entidade(mapa,'G').linha == -1)	coloca_aleatorio(mapa,'G');
+    
+    if(encontrar_entidade(mapa,'Y').linha == -1)	coloca_aleatorio(mapa,'Y');
+    
+    if(encontrar_entidade(mapa,'1').linha == -1)	coloca_aleatorio(mapa,'1');
+    
+    if(encontrar_entidade(mapa,'2').linha == -1)	coloca_aleatorio(mapa,'2');
+    
+    if(encontrar_entidade(mapa,'3').linha == -1)	coloca_aleatorio(mapa,'3');
+  
+    if(encontrar_entidade(mapa,'4').linha == -1)	coloca_aleatorio(mapa,'4');
+    
+    if(encontrar_entidade(mapa,'5').linha == -1)	coloca_aleatorio(mapa,'5');
+    
+    if(encontrar_entidade(mapa,'6').linha == -1)	coloca_aleatorio(mapa,'6');
+    
 }
 
-// Retorna a coordenada do pacman
+// Retorna a coordenada da entidade passada como parametro
 struct coordenada encontrar_entidade(char mapa[40][40],char entidade){
 	struct coordenada pos = {-1, -1}; 
 
